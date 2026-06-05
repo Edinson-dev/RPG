@@ -29,7 +29,9 @@
       "bundleIdentifier": "com.rpgmatch3.cards"
     },
     "extra": {
-      "eas": {}
+      "eas": {
+        "projectId": "6c82326d-58e6-412c-99e8-e3bc3543225f"
+      }
     }
   }
 }
