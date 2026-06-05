@@ -37,11 +37,11 @@ const SHADOW_MAP = {
 };
 
 const GEM_IMAGES = {
-  red: require('../../assets/gem_red.png'),
+  red: require('../../assets/gem_red_new.png'),
   blue: require('../../assets/gem_blue.png'),
   green: require('../../assets/gem_green.png'),
-  yellow: require('../../assets/gem_yellow.png'),
-  purple: require('../../assets/gem_purple.png'),
+  yellow: require('../../assets/gem_yellow_new.png'),
+  purple: require('../../assets/gem_purple_new.png'),
 };
 
 const ICON_MAP = {
