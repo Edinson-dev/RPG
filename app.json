@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "RPG Match-3 & Cards",
+    "slug": "rpg-match3-cards",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.rpgmatch3.cards"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rpgmatch3.cards"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "56c26a9e-0c93-429c-a62b-a02ad3fc49bf"
+      }
+    }
+  }
+}

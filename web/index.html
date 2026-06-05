@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>⚔️ RPG Match-3 & Cards</title>
+    <meta name="description" content="Juego de rol con match-3, cartas mágicas y jefes elementales épicos." />
+
+    <!-- Google Fonts: Cinzel (títulos épicos) + Rajdhani (UI) + Orbitron (HUD) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&family=MedievalSharp&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: #030008;
+        overflow: hidden;
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      /* Fondo animado de partículas para el wrapper web */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 20% 50%, rgba(120,40,200,0.15) 0%, transparent 60%),
+          radial-gradient(ellipse at 80% 20%, rgba(200,60,0,0.1) 0%, transparent 50%),
+          radial-gradient(ellipse at 50% 90%, rgba(0,100,200,0.08) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      #root {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Marco de teléfono en escritorio */
+      #root > div {
+        max-width: 480px;
+        width: 100%;
+        height: 100%;
+        max-height: 900px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 0px;
+        box-shadow:
+          0 0 0 1px rgba(255,255,255,0.05),
+          0 0 80px rgba(120,40,200,0.3),
+          0 0 160px rgba(120,40,200,0.1);
+      }
+
+      /* Ocultar scrollbars */
+      ::-webkit-scrollbar { width: 0px; height: 0px; }
+
+      /* Animación de resplandor en el borde del marco */
+      @keyframes framePulse {
+        0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 0 60px rgba(120,40,200,0.25), 0 0 120px rgba(120,40,200,0.08); }
+        50% { box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 80px rgba(200,80,0,0.3), 0 0 160px rgba(200,80,0,0.1); }
+      }
+
+      #root > div {
+        animation: framePulse 4s ease-in-out infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
