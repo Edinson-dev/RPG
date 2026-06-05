@@ -25,7 +25,7 @@ import {
 
 import GameBoard from './src/components/GameBoard';
 import { executeCardEffect } from './src/utils/gameEngine';
-import { executeAdvancedEnemyTurn } from './src/utils/enemyAI';
+import { executeAdvancedEnemyTurn, forecastBossIntent } from './src/utils/enemyAI';
 
 // Helper: fuente elegíante multiplataforma
 const FONT_TITLE = Platform.select({ web: "'Cinzel Decorative', 'Cinzel', serif", default: 'serif' });
@@ -199,7 +199,7 @@ const BOARD_WIDTH = Math.min(SCREEN_W - 32, 400);
 // ============================================================
 //  COMPONENTE AUXILIAR: AvatarCard (con barras animadas)
 // ============================================================
-function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride }) {
+function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, status, bossIntent }) {
   const barColor = isPlayer ? '#10b981' : '#e11d48';
   const emoji = emojiOverride || (isPlayer ? '\uD83D\uDC32' : '\uD83E\uDD16');
 
@@ -249,9 +249,18 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
             styles.floatingDamageContainer,
             { transform: [{ translateY: floatingDamage.animY }], opacity: floatingDamage.animOpacity }
           ]}>
-            <Text style={[styles.floatingDamageText, { color: floatingDamage.type === 'Defensa' ? '#10b981' : '#ef4444' }]}>
+            <Text style={[
+              styles.floatingDamageText,
+              { color: floatingDamage.type === 'Defensa' ? '#10b981' : '#ef4444' },
+              floatingDamage.isCrit && { color: '#fbbf24', fontSize: 30, fontWeight: '900', textShadowColor: '#b45309', textShadowRadius: 8 }
+            ]}>
               {floatingDamage.value}
             </Text>
+            {floatingDamage.isCrit && (
+              <Text style={{ fontSize: 8, fontFamily: FONT_HUD, color: '#fbbf24', fontWeight: 'bold', textAlign: 'center', textShadowColor: '#000', textShadowRadius: 3 }}>
+                ¡CRÍTICO! 🔥
+              </Text>
+            )}
           </Animated.View>
         )}
       </View>
@@ -270,11 +279,41 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         <Animated.View style={[styles.barGlow, { width: hpPercent, backgroundColor: barColorAnim, opacity: 0.4 }]} />
       </View>
 
+      {/* Estado Alterado Activo */}
+      {status && (
+        <View style={styles.statusBadgeContainer}>
+          <Text style={[
+            styles.statusBadgeText,
+            status.type === 'Quemado' ? styles.statusQuemado :
+            status.type === 'Congelado' ? styles.statusCongelado :
+            styles.statusEnvenenado
+          ]}>
+            {status.type === 'Quemado' ? '🌋 Quemado' :
+             status.type === 'Congelado' ? '❄️ Congelado' :
+             '🟢 Envenenado'} ({status.duration}t)
+          </Text>
+        </View>
+      )}
+
       {!isPlayer && maxEnergy > 0 && (
         <View style={styles.energyRow}>
           {Array.from({ length: maxEnergy }).map((_, i) => (
             <View key={i} style={[styles.energyDot, i < energy ? styles.energyDotActive : null]} />
           ))}
+        </View>
+      )}
+
+      {!isPlayer && bossIntent && (
+        <View style={styles.bossIntentContainer}>
+          <Text style={styles.bossIntentLabel}>Siguiente Acción:</Text>
+          <View style={styles.bossIntentBadge}>
+            <Text style={styles.bossIntentText}>
+              {bossIntent.type === 'attack' ? '⚔️' :
+               bossIntent.type === 'defend' ? '🛡️' :
+               bossIntent.type === 'heal' ? '💚' :
+               bossIntent.type === 'debuff' ? '🧪' : '⚡'} {bossIntent.desc}
+            </Text>
+          </View>
         </View>
       )}
     </Animated.View>
@@ -424,6 +463,34 @@ const WORLD_REWARDS = {
   8: 'c8',  // Fénix de Ceniza
 };
 
+const borderColorsByWorld = {
+  1: '#ea580c', // Fuego
+  2: '#0ea5e9', // Rayo
+  3: '#10b981', // Piedra
+  4: '#a855f7', // Vacío
+  5: '#ec4899', // Cristal
+  6: '#38bdf8', // Viento
+  7: '#67e8f9', // Glaciar
+  8: '#f43f5e', // Caos
+};
+
+const getPipColor = (color) => ({ red: '#ef4444', blue: '#0ea5e9', green: '#10b981', yellow: '#eab308', purple: '#a855f7' }[color] || '#ccc');
+const getCardEmoji = (type) => ({ 'Ataque': '🗡️', 'Defensa': '🛡️', 'Hechizo': '✨' }[type] || '🎴');
+const getCardTypeColor = (type) => ({ 'Ataque': '#ef4444', 'Defensa': '#10b981', 'Hechizo': '#a855f7' }[type] || '#ccc');
+const getCardRarity = (cardId) => {
+  if (['c8', 'c23', 'c28'].includes(cardId)) return 'legendario';
+  if (['c1', 'c5', 'c7', 'c9', 'c15', 'c25'].includes(cardId)) return 'epico';
+  if (['c2', 'c3', 'c4', 'c6', 'c11', 'c13', 'c18', 'c20', 'c22', 'c24'].includes(cardId)) return 'raro';
+  return 'comun';
+};
+
+const getRarityColor = (rarity) => ({
+  legendario: '#fbbf24',
+  epico: '#a855f7',
+  raro: '#0ea5e9',
+  comun: 'rgba(255,255,255,0.08)'
+}[rarity] || 'rgba(255,255,255,0.08)');
+
 export default function App() {
   // --- NAVEGACIÓN Y ECONOMÍA ---
   const [gameState, setGameState] = useState('intro'); // 'intro' | 'level_selection' | 'shop' | 'deck_management' | 'combat'
@@ -471,6 +538,57 @@ export default function App() {
   const turnBannerScale = useRef(new Animated.Value(0)).current;
   const turnBannerOpacity = useRef(new Animated.Value(0)).current;
 
+  // Pulso de vida baja
+  const lowHpPulse = useRef(new Animated.Value(0)).current;
+
+  // Brillo holográfico de cartas
+  const shineAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shineAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.linear,
+        useNativeDriver: false
+      })
+    ).start();
+  }, []);
+
+  const shineAnimInterpolated = shineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-180, 180]
+  });
+
+  // Estados alterados del combate
+  const [playerStatus, setPlayerStatus] = useState(null); // null | { type: 'Quemado' | 'Congelado' | 'Envenenado', duration: number }
+  const [enemyStatus, setEnemyStatus] = useState(null); // null | { type: 'Quemado' | 'Congelado' | 'Envenenado', duration: number }
+
+  // Mensaje flotante de combos
+  const [comboMsg, setComboMsg] = useState(null);
+  const comboMsgScale = useRef(new Animated.Value(0.5)).current;
+  const comboMsgOpacity = useRef(new Animated.Value(0)).current;
+  const comboMsgY = useRef(new Animated.Value(0)).current;
+
+  const triggerComboVfx = (msg) => {
+    setComboMsg(msg);
+    comboMsgScale.setValue(0.5);
+    comboMsgOpacity.setValue(1);
+    comboMsgY.setValue(0);
+    Animated.parallel([
+      Animated.spring(comboMsgScale, { toValue: 1.4, friction: 3, tension: 120, useNativeDriver: true }),
+      Animated.timing(comboMsgY, { toValue: -65, duration: 750, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.delay(450),
+        Animated.timing(comboMsgOpacity, { toValue: 0, duration: 300, useNativeDriver: true })
+      ])
+    ]).start(() => {
+      setComboMsg(null);
+    });
+  };
+
+  // Selección de cartas de la mano
+  const [selectedHandIndex, setSelectedHandIndex] = useState(null);
+
   const [lootCard, setLootCard] = useState(null); // Carta ganada en victoria
 
 
@@ -487,6 +605,11 @@ export default function App() {
   const [combatLog, setCombatLog] = useState('');
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [victoryPhase, setVictoryPhase] = useState('idle'); // 'idle' | 'showing' | 'transitioning'
+
+  // Resetear selección cuando cambie el turno
+  useEffect(() => {
+    setSelectedHandIndex(null);
+  }, [turn]);
 
   // Animaciones de victoria
   const victoryScale = useRef(new Animated.Value(0)).current;
@@ -525,6 +648,52 @@ export default function App() {
 
   // VFX cinematográfico de ataque
   const [attackVfx, setAttackVfx] = useState(null); // { color, fromPlayer }
+  
+  // --- NUEVAS CARACTERÍSTICAS PREMIUM ---
+  const screenTransitionAnim = useRef(new Animated.Value(0)).current;
+  const [bossIntent, setBossIntent] = useState(null);
+  const [specialOfferId, setSpecialOfferId] = useState(null);
+  const [specialOfferDiscount, setSpecialOfferDiscount] = useState(0);
+  const [isCriticalDamage, setIsCriticalDamage] = useState(false);
+
+  const refreshSpecialOffer = () => {
+    const shopCards = Object.values(CARDS_POOL).filter(c => c.price);
+    const unownedShopCards = shopCards.filter(c => !collection.includes(c.id));
+    const targetPool = unownedShopCards.length > 0 ? unownedShopCards : shopCards;
+    if (targetPool.length > 0) {
+      const randomCard = targetPool[Math.floor(Math.random() * targetPool.length)];
+      const discountPct = (Math.floor(Math.random() * 6) * 5 + 20) / 100; // 0.20 a 0.45
+      setSpecialOfferId(randomCard.id);
+      setSpecialOfferDiscount(discountPct);
+    }
+  };
+
+  const changeGameState = (newScreen) => {
+    if (newScreen === 'shop') {
+      refreshSpecialOffer();
+    }
+    Animated.timing(screenTransitionAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start(() => {
+      setGameState(newScreen);
+      Animated.timing(screenTransitionAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
+    });
+  };
+
+  // Actualizar pronóstico de intención al iniciar turno del jugador
+  useEffect(() => {
+    if (gameState === 'combat' && turn === 'player' && enemy && currentWorld) {
+      const intent = forecastBossIntent(enemy, currentWorld);
+      setBossIntent(intent);
+    }
+  }, [turn, gameState, enemy, currentWorld]);
+
   const shockwaveAnim = useRef(new Animated.Value(0)).current;
   const shockwaveOpacity = useRef(new Animated.Value(0)).current;
   const impactFlash = useRef(new Animated.Value(0)).current;
@@ -589,6 +758,101 @@ export default function App() {
     });
   }, [turn, gameState]);
 
+  // Efecto para animar el pulso de la viñeta de peligro (vida baja < 25%)
+  useEffect(() => {
+    if (gameState !== 'combat') {
+      lowHpPulse.setValue(0);
+      return;
+    }
+    const isLow = player.hp / player.maxHp <= 0.25;
+    if (isLow && player.hp > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(lowHpPulse, { toValue: 0.8, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+          Animated.timing(lowHpPulse, { toValue: 0.2, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: false })
+        ])
+      ).start();
+    } else {
+      Animated.timing(lowHpPulse, { toValue: 0, duration: 300, useNativeDriver: false }).start();
+    }
+  }, [player.hp, player.maxHp, gameState]);
+
+  // --- PROCESAMIENTO DE ESTADOS ALTERADOS AL CAMBIAR EL TURNO ---
+  useEffect(() => {
+    if (gameState !== 'combat' || player.hp <= 0 || enemy.hp <= 0) return;
+
+    if (turn === 'player') {
+      let dmg = 0;
+      let logMsg = '';
+      let activePA = 3;
+
+      if (playerStatus) {
+        const type = playerStatus.type;
+        const nextDuration = playerStatus.duration - 1;
+
+        if (type === 'Quemado') {
+          dmg = 6;
+          logMsg = '🌋 ¡Sufres 6 de daño por Quemadura!';
+        } else if (type === 'Envenenado') {
+          dmg = 4;
+          logMsg = '🟢 ¡Sufres 4 de daño por Veneno directo!';
+        } else if (type === 'Congelado') {
+          activePA = 2;
+          logMsg = '❄️ ¡Estás Congelado! Solo inicias con 2 PA.';
+        }
+
+        if (dmg > 0) {
+          setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - dmg) }));
+          triggerShake(true);
+          triggerFloatingDamage(true, `-${dmg}`, 'Ataque');
+        }
+
+        triggerComboVfx(logMsg);
+        setCombatLog(prev => `⚔️ Tu Turno. ${logMsg}`);
+        setPlayerStatus(nextDuration <= 0 ? null : { ...playerStatus, duration: nextDuration });
+      } else {
+        setCombatLog('⚔️ Tu Turno. ¡Elige tu movimiento!');
+      }
+
+      setActionPoints(activePA);
+
+    } else if (turn === 'enemy') {
+      let dmg = 0;
+      let logMsg = '';
+
+      if (enemyStatus) {
+        const type = enemyStatus.type;
+        const nextDuration = enemyStatus.duration - 1;
+
+        if (type === 'Quemado') {
+          dmg = 8;
+          logMsg = '🌋 ¡El enemigo sufre 8 de daño por Quemadura!';
+        } else if (type === 'Envenenado') {
+          dmg = 6;
+          logMsg = '🟢 ¡El enemigo sufre 6 de daño por Veneno!';
+        } else if (type === 'Congelado') {
+          logMsg = '❄️ ¡El enemigo está Congelado y aletargado!';
+        }
+
+        if (dmg > 0) {
+          setEnemy(prev => {
+            const nextHp = Math.max(0, prev.hp - dmg);
+            if (nextHp <= 0) {
+              setTimeout(() => triggerVictoryAnimation(), 800);
+            }
+            return { ...prev, hp: nextHp };
+          });
+          triggerShake(false);
+          triggerFloatingDamage(false, `-${dmg}`, 'Hechizo');
+        }
+
+        triggerComboVfx(logMsg);
+        setCombatLog(prev => `🤖 Turno Enemigo. ${logMsg}`);
+        setEnemyStatus(nextDuration <= 0 ? null : { ...enemyStatus, duration: nextDuration });
+      }
+    }
+  }, [turn, gameState]);
+
   // Calor ambiental pulsante para la arena
   const envPulseAnim = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
@@ -631,7 +895,7 @@ export default function App() {
     if (!forceUnlock && WORLDS[index].id > maxUnlockedWorld) return;
     if (activeDeck.length !== 3) {
       alert('Debes tener exactamente 3 cartas equipadas en tu mazo activo para combatir.');
-      setGameState('deck_management');
+      changeGameState('deck_management');
       return;
     }
 
@@ -643,20 +907,29 @@ export default function App() {
     const baseMaxHp = 100 + maxHpBonus;
     const startingShield = 20 + (level - 1) * 5;
     setPlayer({ hp: baseMaxHp, maxHp: baseMaxHp, shield: startingShield });
-    setEnemy({
+    
+    const initialEnemy = {
       name: targetWorld.enemyName,
       hp: targetWorld.enemyHp,
       maxHp: targetWorld.enemyHp,
       shield: 0,
       energy: 3,
       type: targetWorld.enemyType,
-    });
+    };
+    setEnemy(initialEnemy);
+    
+    // Pronosticar intención inicial del jefe
+    const initialIntent = forecastBossIntent(initialEnemy, targetWorld);
+    setBossIntent(initialIntent);
+
     setHand(activeDeck.map(id => ({ ...CARDS_POOL[id], charge: 0 })));
+    setPlayerStatus(null);
+    setEnemyStatus(null);
     setActionPoints(3);
     setTurn('player');
     setCombatLog(`⚔️ Has entrado a: ${targetWorld.name}. ¡Derrota al jefe!`);
     setShowVictoryModal(false);
-    setGameState('combat');
+    changeGameState('combat');
   };
 
   // --- FX: SACUDIDAS Y TEXTOS FLOTANTES ---
@@ -774,15 +1047,24 @@ export default function App() {
     const targetY = isTargetPlayer ? playerPopupY : enemyPopupY;
     const targetOpacity = isTargetPlayer ? playerPopupOpacity : enemyPopupOpacity;
 
-    if (isTargetPlayer) setPlayerDamageVal({ value, type });
-    else setEnemyDamageVal({ value, type });
+    const numericVal = Math.abs(parseInt(value.replace(/[^0-9]/g, '')) || 0);
+    const isCrit = numericVal >= 20;
+
+    if (isTargetPlayer) setPlayerDamageVal({ value, type, isCrit });
+    else setEnemyDamageVal({ value, type, isCrit });
+
+    if (isCrit) {
+      playSfx('victory');
+      triggerShake(!isTargetPlayer);
+      triggerShake(!isTargetPlayer);
+    }
 
     targetY.setValue(10);
     targetOpacity.setValue(1);
 
     Animated.parallel([
-      Animated.timing(targetY, { toValue: -35, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-      Animated.timing(targetOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+      Animated.timing(targetY, { toValue: -50, duration: 1000, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+      Animated.timing(targetOpacity, { toValue: 0, duration: 1000, useNativeDriver: true }),
     ]).start(() => {
       if (isTargetPlayer) setPlayerDamageVal(null);
       else setEnemyDamageVal(null);
@@ -795,6 +1077,17 @@ export default function App() {
     const { actionDescription, updatedPlayer, updatedEnemy } = pendingAiUpdate.current;
     pendingAiUpdate.current = null;
     setCurrentAiMove(null);
+
+    // Aplicar estados al jugador según el mundo con 40% de probabilidad
+    if (Math.random() < 0.4) {
+      if ([1, 8].includes(currentWorld.id)) {
+        setPlayerStatus({ type: 'Quemado', duration: 2 });
+      } else if ([2, 7].includes(currentWorld.id)) {
+        setPlayerStatus({ type: 'Congelado', duration: 2 });
+      } else if ([3, 5, 6].includes(currentWorld.id)) {
+        setPlayerStatus({ type: 'Envenenado', duration: 2 });
+      }
+    }
 
     const oldPlayerHp = player.hp;
     const oldPlayerShield = player.shield;
@@ -842,11 +1135,11 @@ export default function App() {
 
       pendingAiUpdate.current = { actionDescription, updatedPlayer, updatedEnemy };
 
-      if (recommendedMove) {
+      if (recommendedMove && enemyStatus?.type !== 'Congelado') {
         // Enviar coordenadas del swap a GameBoard para que lo anime en el tablero
         setCurrentAiMove(recommendedMove);
       } else {
-        // Ejecutar de inmediato sin swap si el tablero no lo requiere
+        // Ejecutar de inmediato sin swap si el tablero no lo requiere o está congelado
         handleAiMoveComplete();
       }
     }, 1200);
@@ -1029,6 +1322,16 @@ export default function App() {
     const { newPlayerState, newEnemyState } = executeCardEffect(card, player, enemy);
 
     setHand(prevHand => prevHand.map(c => c.id === card.id ? { ...c, charge: 0 } : c));
+    setSelectedHandIndex(null);
+
+    // Aplicar estados alterados según el id/elemento de la carta
+    if (['c1', 'c8', 'c14', 'c23', 'c26'].includes(card.id)) {
+      setEnemyStatus({ type: 'Quemado', duration: 2 });
+    } else if (['c4', 'c11', 'c20', 'c22', 'c30'].includes(card.id)) {
+      setEnemyStatus({ type: 'Congelado', duration: 2 });
+    } else if (['c5', 'c17', 'c19', 'c27'].includes(card.id)) {
+      setEnemyStatus({ type: 'Envenenado', duration: 2 });
+    }
 
     let log = `⚔️ Lanzas [${card.name}] (-1 PA). `;
     if (card.type === 'Ataque') log += `Inflige ${card.effectValue} de daño.`;
@@ -1088,9 +1391,9 @@ export default function App() {
       if (nextWorldDecks) setActiveDeck(nextWorldDecks.playerDeck);
       setTimeout(() => handleSelectWorld(nextIdx, true), 100);
     } else if (action === 'shop') {
-      setGameState('shop');
+      changeGameState('shop');
     } else {
-      setGameState('level_selection');
+      changeGameState('level_selection');
     }
   }, [currentWorldIndex, currentWorld, maxUnlockedWorld]);
 
@@ -1108,6 +1411,7 @@ export default function App() {
     const bgRotDeg = introBgRot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
     return (
       <SafeAreaView style={styles.introRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#000" />
 
         {/* Fondo giratorio */}
@@ -1139,7 +1443,7 @@ export default function App() {
         {/* Botón de inicio */}
         <Animated.View style={{ opacity: introBtnOpacity, marginTop: 40 }}>
           <TouchableOpacity
-            onPress={() => setGameState('level_selection')}
+            onPress={() => changeGameState('level_selection')}
             style={styles.introStartBtn}
             activeOpacity={0.8}
           >
@@ -1157,6 +1461,7 @@ export default function App() {
   if (gameState === 'level_selection') {
     return (
       <SafeAreaView style={styles.selectionRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
         <View style={styles.selectionHeader}>
           <View>
@@ -1182,10 +1487,10 @@ export default function App() {
           <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
             <Text style={styles.navBtnText}>🗺️ Reino</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setGameState('shop')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('shop')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🛒 Tienda</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setGameState('deck_management')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('deck_management')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🎴 Mazo ({activeDeck.length}/3)</Text>
           </TouchableOpacity>
         </View>
@@ -1260,6 +1565,7 @@ export default function App() {
   if (gameState === 'shop') {
     return (
       <SafeAreaView style={styles.selectionRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
         <View style={styles.selectionHeader}>
           <Text style={styles.selectionHeaderTitle}>🛒 TIENDA MÍSTICA</Text>
@@ -1279,13 +1585,13 @@ export default function App() {
         </View>
 
         <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => setGameState('level_selection')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('level_selection')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🗺️ Reino</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
             <Text style={styles.navBtnText}>🛒 Tienda</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setGameState('deck_management')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('deck_management')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🎴 Mazo ({activeDeck.length}/3)</Text>
           </TouchableOpacity>
         </View>
@@ -1295,12 +1601,22 @@ export default function App() {
           
           <View style={styles.shopGrid}>
             {Object.values(CARDS_POOL).map(card => {
-              // Filtrar solo las que tienen precio (exclusivas de tienda)
               if (!card.price) return null;
               const isOwned = collection.includes(card.id);
+              const rarity = getCardRarity(card.id);
+
+              const isOffer = card.id === specialOfferId;
+              const discountMultiplier = isOffer ? (1 - specialOfferDiscount) : 1;
+              const finalPrice = Math.floor(card.price * discountMultiplier);
 
               return (
-                <View key={card.id} style={styles.shopItemCard}>
+                <View key={card.id} style={[styles.shopItemCard, { borderColor: getRarityColor(rarity) }]}>
+                  {isOffer && !isOwned && (
+                    <View style={styles.offerBadge}>
+                      <Text style={styles.offerBadgeText}>⚡ OFERTA -{Math.round(specialOfferDiscount * 100)}% ⚡</Text>
+                    </View>
+                  )}
+
                   <View style={styles.shopItemHeader}>
                     <Text style={styles.shopItemEmoji}>{getCardEmoji(card.type)}</Text>
                     <Text style={styles.shopItemName}>{card.name}</Text>
@@ -1319,10 +1635,12 @@ export default function App() {
                     </View>
                   ) : (
                     <TouchableOpacity
-                      onPress={() => handleBuyCard(card.id, card.price)}
+                      onPress={() => handleBuyCard(card.id, finalPrice)}
                       style={styles.shopBuyBtn}
                     >
-                      <Text style={styles.shopBuyBtnText}>🪙 COMPRAR por {card.price}</Text>
+                      <Text style={styles.shopBuyBtnText}>
+                        🪙 COMPRAR por {finalPrice} {isOffer && <Text style={{ textDecorationLine: 'line-through', fontSize: 7, opacity: 0.7 }}>({card.price})</Text>}
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1340,6 +1658,7 @@ export default function App() {
   if (gameState === 'deck_management') {
     return (
       <SafeAreaView style={styles.selectionRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
         <View style={styles.selectionHeader}>
           <Text style={styles.selectionHeaderTitle}>🎴 GESTIÓN DE MAZOS</Text>
@@ -1359,10 +1678,10 @@ export default function App() {
         </View>
 
         <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => setGameState('level_selection')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('level_selection')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🗺️ Reino</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setGameState('shop')} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => changeGameState('shop')} style={styles.navBtn}>
             <Text style={styles.navBtnText}>🛒 Tienda</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
@@ -1420,6 +1739,7 @@ export default function App() {
             {collection.map(cardId => {
               const card = CARDS_POOL[cardId];
               const isEquipped = activeDeck.includes(cardId);
+              const rarity = getCardRarity(cardId);
 
               return (
                 <TouchableOpacity
@@ -1428,9 +1748,11 @@ export default function App() {
                   onPress={() => handleToggleEquipCard(cardId)}
                   style={[
                     styles.deckItemCard,
-                    isEquipped ? styles.deckItemEquipped : styles.deckItemUnequipped
+                    isEquipped ? styles.deckItemEquipped : styles.deckItemUnequipped,
+                    { borderColor: getRarityColor(rarity) }
                   ]}
                 >
+
                   <View style={styles.deckItemHeader}>
                     <Text style={styles.deckItemEmoji}>{getCardEmoji(card.type)}</Text>
                     <Text style={styles.deckItemName}>{card.name}</Text>
@@ -1515,11 +1837,14 @@ export default function App() {
   // ============================================================
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: currentWorld.bgColor }]}>
+      <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
       {currentWorld.bgImage && (
         <Image source={currentWorld.bgImage} style={styles.backgroundImage} resizeMode="cover" />
       )}
       {/* Viñeta de sombra interna */}
       <View pointerEvents="none" style={[styles.lavaVignette, { borderColor: currentWorld.vignetteColor }]} />
+      {/* Viñeta de peligro de vida baja */}
+      <Animated.View pointerEvents="none" style={[styles.dangerVignette, { opacity: lowHpPulse }]} />
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <ScrollView contentContainerStyle={styles.scroll} bounces={false}>
@@ -1593,6 +1918,7 @@ export default function App() {
                 shakeAnim={playerShake}
                 floatingDamage={heroFloating}
                 flashAnim={playerFlash}
+                status={playerStatus}
               />
             </View>
 
@@ -1635,6 +1961,8 @@ export default function App() {
                 floatingDamage={enemyFloating}
                 flashAnim={enemyFlash}
                 emojiOverride={currentWorld.enemyEmoji}
+                status={enemyStatus}
+                bossIntent={bossIntent}
               />
             </View>
           </View>
@@ -1681,11 +2009,15 @@ export default function App() {
                 });
                 triggerShake(false);
                 triggerFloatingDamage(false, `-${dmg}`, 'Hechizo');
+                triggerComboVfx('💀 GOLPE DE CALAVERA 💀');
                 setCombatLog(prev => `💀 ¡Ataque de Calavera! Infliges ${dmg} daño directo.`);
               }}
               onBonusActionPoint={() => {
                 setActionPoints(prev => prev + 1);
-                setCombatLog(prev => `🔥 ¡Combo Alineado! Ganas +1 PA extra.`);
+                triggerShake(true);
+                triggerShake(false);
+                triggerComboVfx('🔥 ¡COMBO EXTRA +1 PA! 🔥');
+                setCombatLog(prev => '🔥 ¡Combo Alineado! Ganas +1 PA extra.');
               }}
               onPlayerDamage={(dmg) => {
                 setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - dmg) }));
@@ -1695,6 +2027,22 @@ export default function App() {
               }}
             />
           </Animated.View>
+
+          {/* Mensaje flotante de combos */}
+          {comboMsg && (
+            <Animated.View style={[
+              styles.comboMsgContainer,
+              {
+                opacity: comboMsgOpacity,
+                transform: [
+                  { scale: comboMsgScale },
+                  { translateY: comboMsgY }
+                ]
+              }
+            ]} pointerEvents="none">
+              <Text style={styles.comboMsgText}>{comboMsg}</Text>
+            </Animated.View>
+          )}
         </View>
 
         {/* MAZO BOCA ABAJO DEL ENEMIGO */}
@@ -1716,10 +2064,12 @@ export default function App() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll}>
-            {hand.map(card => {
+            {hand.map((card, idx) => {
               const isReady = card.charge >= card.totalCost;
               const progress = Math.min(100, (card.charge / card.totalCost) * 100);
               const cardDisabled = actionPoints <= 0 || turn !== 'player';
+              const isSelected = selectedHandIndex === idx;
+              const rarity = getCardRarity(card.id);
               
               return (
                 <TouchableOpacity
@@ -1729,10 +2079,20 @@ export default function App() {
                   style={[
                     styles.cardContainer,
                     isReady ? styles.cardReady : null,
-                    cardDisabled ? styles.cardContainerDisabled : null
+                    cardDisabled ? styles.cardContainerDisabled : null,
+                    isSelected ? styles.cardSelected : null,
+                    { borderColor: getRarityColor(rarity) }
                   ]}
-                  onPress={() => handlePlayCard(card)}
+                  onPress={() => {
+                    if (isSelected) {
+                      handlePlayCard(card);
+                    } else {
+                      setSelectedHandIndex(idx);
+                      playSfx('cardPlay');
+                    }
+                  }}
                 >
+
                   <View style={styles.cardManaRow}>
                     {Object.entries(card.manaCost).map(([color, amount]) => (
                       <View key={color} style={[styles.manaPip, { backgroundColor: getPipColor(color) }]}>
@@ -1893,7 +2253,7 @@ export default function App() {
             <TouchableOpacity onPress={handleRetryCampaign} style={[styles.overlayBtn, { marginRight: 10 }]}>
               <Text style={styles.overlayBtnText}>🔄 REINTENTAR</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setGameState('level_selection')} style={[styles.overlayBtn, { borderColor: '#4b5563' }]}>
+            <TouchableOpacity onPress={() => changeGameState('level_selection')} style={[styles.overlayBtn, { borderColor: '#4b5563' }]}>
               <Text style={[styles.overlayBtnText, { color: '#9ca3af' }]}>🗺️ REGRESAR AL MAPA</Text>
             </TouchableOpacity>
           </View>
@@ -1923,25 +2283,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
-// ============================================================
-//  AYUDANTES Y CONFIGURACIONES
-// ============================================================
-const borderColorsByWorld = {
-  1: '#ea580c', // Fuego
-  2: '#0ea5e9', // Rayo
-  3: '#10b981', // Piedra
-  4: '#a855f7', // Vacío
-  5: '#ec4899', // Cristal
-  6: '#38bdf8', // Viento
-  7: '#67e8f9', // Glaciar
-  8: '#f43f5e', // Caos
-};
-
-const getPipColor = (color) => ({ red: '#ef4444', blue: '#0ea5e9', green: '#10b981', yellow: '#eab308', purple: '#a855f7' }[color] || '#ccc');
-const getCardEmoji = (type) => ({ 'Ataque': '🗡️', 'Defensa': '🛡️', 'Hechizo': '✨' }[type] || '🎴');
-const getCardTypeColor = (type) => ({ 'Ataque': '#ef4444', 'Defensa': '#10b981', 'Hechizo': '#a855f7' }[type] || '#ccc');
-
 // ============================================================
 //  HOJA DE ESTILOS PREMIUM
 // ============================================================
@@ -2170,6 +2511,66 @@ const styles = StyleSheet.create({
   
   floatingDamageContainer: { position: 'absolute', zIndex: 50, top: -10, left: -10 },
   floatingDamageText: { fontSize: 22, fontWeight: '900', fontFamily: FONT_HUD, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
+
+  bossIntentContainer: {
+    marginTop: 6,
+    alignItems: 'center',
+    width: '100%',
+  },
+  bossIntentLabel: {
+    fontSize: 7,
+    fontFamily: FONT_HUD,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+    letterSpacing: 1,
+  },
+  bossIntentBadge: {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderColor: '#e11d48',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    width: '100%',
+  },
+  bossIntentText: {
+    fontSize: 8,
+    fontFamily: FONT_MEDIEVAL,
+    color: '#fca5a5',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+
+  transitionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#05050a',
+    zIndex: 99999,
+  },
+
+  offerBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#eab308',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    zIndex: 10,
+    shadowColor: '#eab308',
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+  },
+  offerBadgeText: {
+    color: '#000',
+    fontFamily: FONT_HUD,
+    fontSize: 7,
+    fontWeight: 'bold',
+  },
 
   // Proyectil y VFX de ataque
   spellProjectile: {
@@ -2764,6 +3165,106 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(239,68,68,0.8)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+  },
+
+  // Danger Vignette for Low HP
+  dangerVignette: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 8,
+    borderColor: '#ef4444',
+    backgroundColor: 'transparent',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 20,
+    shadowOpacity: 0.85,
+    elevation: 8,
+  },
+
+  // Combo Floating Messages
+  comboMsgContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '40%',
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#fbbf24',
+    shadowColor: '#fbbf24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 15,
+    shadowOpacity: 0.8,
+    elevation: 12,
+    zIndex: 100,
+  },
+  comboMsgText: {
+    color: '#fbbf24',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: FONT_HUD,
+    textAlign: 'center',
+    textShadowColor: 'rgba(251,191,36,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+
+  // Selected Card in Hand
+  cardSelected: {
+    transform: [{ translateY: -14 }, { scale: 1.08 }],
+    borderColor: '#fbbf24',
+    borderWidth: 2,
+    shadowColor: '#fbbf24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 18,
+    shadowOpacity: 0.9,
+    elevation: 14,
+  },
+
+  // Holographic Foil glare sweep effect
+  holographicShine: {
+    position: 'absolute',
+    top: -40,
+    bottom: -40,
+    width: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    zIndex: 5,
+  },
+
+  // Active status/debuff badges under health bar
+  statusBadgeContainer: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignSelf: 'center',
+  },
+  statusBadgeText: {
+    fontSize: 9,
+    fontFamily: FONT_HUD,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  statusQuemado: {
+    color: '#f97316',
+    textShadowColor: 'rgba(249, 115, 22, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  statusCongelado: {
+    color: '#0ea5e9',
+    textShadowColor: 'rgba(14, 165, 233, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  statusEnvenenado: {
+    color: '#22c55e',
+    textShadowColor: 'rgba(34, 197, 94, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
 });
 
