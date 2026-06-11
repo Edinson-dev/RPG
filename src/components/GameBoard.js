@@ -16,6 +16,8 @@ import {
   Dimensions,
   Easing,
   Image,
+  Vibration,
+  Platform,
 } from 'react-native';
 
 const GRID_SIZE = 6;
@@ -53,7 +55,8 @@ const ICON_MAP = {
 };
 
 const SCREEN_W = Dimensions.get('window').width;
-const BOARD_WIDTH = Math.min(SCREEN_W - 32, 400);
+const SCREEN_H = Dimensions.get('window').height;
+const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.355, 300);
 const CELL_SIZE = Math.floor(BOARD_WIDTH / GRID_SIZE);
 const GEM_SIZE = CELL_SIZE - 6;
 
@@ -76,6 +79,8 @@ export default function GameBoard({
   aiMove,
   onAiMoveComplete,
   onManaGained,
+  incomingBoardEffect,
+  onBoardEffectComplete,
 }) {
   const [selectedCell, setSelectedCell] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -149,6 +154,30 @@ export default function GameBoard({
       });
     }
   }, [currentTurn, currentWorld]);
+
+  // Aplicar efectos entrantes de la IA (Congelamiento, Bloqueo)
+  useEffect(() => {
+    if (incomingBoardEffect && grid && grid.length > 0) {
+      setGrid(prevGrid => {
+        const nextGrid = prevGrid.map(row => row.map(cell => ({ ...cell })));
+        let applied = 0;
+        let attempts = 0;
+        while (applied < incomingBoardEffect.count && attempts < 50) {
+          attempts++;
+          const r = Math.floor(Math.random() * GRID_SIZE);
+          const c = Math.floor(Math.random() * GRID_SIZE);
+          const cell = nextGrid[r][c];
+          if (cell && !cell.frozen && !cell.locked) {
+            if (incomingBoardEffect.type === 'freeze') cell.frozen = true;
+            if (incomingBoardEffect.type === 'lock') cell.locked = true;
+            applied++;
+          }
+        }
+        return nextGrid;
+      });
+      if (onBoardEffectComplete) onBoardEffectComplete();
+    }
+  }, [incomingBoardEffect, grid, onBoardEffectComplete]);
 
   // Escuchar movimientos de la IA y animarlos visualmente
   useEffect(() => {
@@ -293,9 +322,10 @@ export default function GameBoard({
         }
       }
 
-      // Desatar Animación de Rayo de maná neón
+      // Desatar Animación de Rayo de maná neón y vibración
       if (firstMatchCoords) {
         setLightningCoords(firstMatchCoords);
+        if (Platform.OS !== 'web') Vibration.vibrate(30); // <--- Vibración suave de match
         Animated.sequence([
           Animated.timing(lightningOpacity, { toValue: 1, duration: 150, useNativeDriver: false }),
           Animated.timing(lightningOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
@@ -304,7 +334,7 @@ export default function GameBoard({
 
       // Notificar al padre sobre combos o daños inmediatos
       if (directDamageCount > 0 && onDirectDamage) {
-        onDirectDamage(directDamageCount * 5);
+        onDirectDamage(directDamageCount * 8); // Daño de calaveras (aumentado)
       }
 
       if (maxComboLength >= 4 && onBonusActionPoint) {
@@ -312,7 +342,7 @@ export default function GameBoard({
       }
 
       if (containsBurnedGem && onPlayerDamage) {
-        onPlayerDamage(10);
+        onPlayerDamage(15); // Daño de fuego (aumentado)
       }
 
       // 2. Animación de disolución (escala a 0)
@@ -397,6 +427,12 @@ export default function GameBoard({
 
   const handleCellPress = async (r, c) => {
     if (currentTurn !== 'player' || actionPoints <= 0 || isProcessing) return;
+
+    const targetGem = grid[r][c];
+    if (targetGem?.frozen || targetGem?.locked) {
+      // No se puede seleccionar ni mover
+      return;
+    }
 
     if (!selectedCell) {
       setSelectedCell({ r, c });
@@ -503,6 +539,8 @@ export default function GameBoard({
                   styles.cell,
                   isSelected ? styles.cellSelected : null,
                   gem.burned ? styles.cellBurned : null,
+                  gem.frozen ? styles.cellFrozen : null,
+                  gem.locked ? styles.cellLocked : null,
                 ]}
                 onPress={() => handleCellPress(r, c)}
               >
@@ -521,8 +559,18 @@ export default function GameBoard({
                     resizeMode="contain"
                   />
                   {gem.burned && (
-                    <View style={styles.burnedOverlay}>
-                      <Text style={styles.burnedText}>🔥</Text>
+                    <View style={styles.statusOverlay}>
+                      <Text style={styles.statusEmoji}>🔥</Text>
+                    </View>
+                  )}
+                  {gem.frozen && (
+                    <View style={[styles.statusOverlay, { backgroundColor: 'rgba(14, 165, 233, 0.45)' }]}>
+                      <Text style={styles.statusEmoji}>❄️</Text>
+                    </View>
+                  )}
+                  {gem.locked && (
+                    <View style={[styles.statusOverlay, { backgroundColor: 'rgba(71, 85, 105, 0.45)' }]}>
+                      <Text style={styles.statusEmoji}>⛓️</Text>
                     </View>
                   )}
                 </Animated.View>
@@ -563,16 +611,16 @@ const styles = StyleSheet.create({
   container: {
     width: BOARD_WIDTH,
     height: BOARD_WIDTH,
-    borderRadius: 16,
-    borderWidth: 5,
-    padding: 3,
+    borderRadius: 20,
+    borderWidth: 0,
+    padding: 2,
     alignSelf: 'center',
     justifyContent: 'center',
-    marginVertical: 10,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 24,
-    shadowOpacity: 0.9,
-    elevation: 12,
+    marginVertical: 4,
+    shadowOffset: { width: 0, height: 15 },
+    shadowRadius: 30,
+    shadowOpacity: 1,
+    elevation: 16,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -589,6 +637,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   cellSelected: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -603,24 +654,34 @@ const styles = StyleSheet.create({
     height: GEM_SIZE * 0.95,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    shadowOpacity: 0.85,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 12,
+    shadowOpacity: 1,
+    elevation: 10,
   },
   gemImage: {
     width: '100%',
     height: '100%',
   },
-  burnedOverlay: {
+  statusOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(239, 68, 68, 0.45)',
+    backgroundColor: 'rgba(239, 68, 68, 0.45)', // Defecto (Fuego)
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  burnedText: {
+  statusEmoji: {
     fontSize: 20,
+  },
+  cellFrozen: {
+    borderWidth: 2,
+    borderColor: '#0ea5e9',
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+  },
+  cellLocked: {
+    borderWidth: 2,
+    borderColor: '#475569',
+    backgroundColor: 'rgba(71, 85, 105, 0.1)',
   },
   lightningBolt: {
     position: 'absolute',

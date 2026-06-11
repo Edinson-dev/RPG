@@ -116,13 +116,29 @@ function findAIRecommendedSwap(grid, preferredColor = null, prioritizeMatch4 = f
  * @param {Object} playerState Estado del jugador
  * @param {Object} currentWorld Información del mundo elemental actual
  * @param {Array} grid Matriz 6x6 actual del GameBoard
+ * @param {Object} enemyStatus Estado actual del enemigo (ej: congelado)
  */
-export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, grid = []) {
-  const updatedEnemy = { ...enemyState };
-  const updatedPlayer = { ...playerState };
-  let actionDescription = '';
+export const executeAdvancedEnemyTurn = (enemy, player, world, grid, enemyStatus, maxUnlockedWorld = 1) => {
+  const updatedPlayer = { ...player };
+  const updatedEnemy = { ...enemy };
 
-  const worldId = currentWorld?.id || 1;
+  // Si el enemigo está congelado, pierde el turno
+  if (enemyStatus?.type === 'Congelado') {
+    return {
+      actionDescription: `❄️ El enemigo está congelado y pierde su turno.`,
+      updatedPlayer,
+      updatedEnemy,
+      recommendedMove: null,
+      boardEffect: null,
+    };
+  }
+
+  let actionDescription = '';
+  let boardEffect = null;
+
+  // Lógica modular infinita: si el mundo es > 12, se repiten los patrones de los primeros 12.
+  const rawWorldId = world?.id || 1;
+  const worldId = ((rawWorldId - 1) % 12) + 1;
   const enemyEnergy = updatedEnemy.energy || 0;
 
   let preferredColor = 'purple'; // Calaveras por defecto
@@ -133,7 +149,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     case 1: // Demonio de Lava
       preferredColor = 'red'; // Prioriza Fuego
       if (enemyEnergy >= 3) {
-        const baseDmg = 8;
+        const baseDmg = 15;
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -142,7 +158,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
           updatedPlayer.hp = Math.max(0, updatedPlayer.hp - (baseDmg - playerShield));
         }
         updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
-        actionDescription = `🔥 Demonio activa [Lluvia de Magma] (-3 Energía). Causa 8 de daño a tu defensa.`;
+        actionDescription = `🔥 Demonio activa [Lluvia de Magma] (-3 Energía). Causa ${baseDmg} de daño a tu defensa.`;
       } else {
         updatedEnemy.energy += 2;
         actionDescription = `🔋 Demonio acumula calor (+2 Energía).`;
@@ -153,7 +169,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
       preferredColor = 'yellow'; // Prioriza Rayo
       prioritizeMatch4 = true;   // Busca combinaciones Match-4/5
       if (enemyEnergy >= 4) {
-        const baseDmg = 12;
+        const baseDmg = 20;
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -175,7 +191,8 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
         const armorGained = 20;
         updatedEnemy.shield = (updatedEnemy.shield || 0) + armorGained;
         updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
-        actionDescription = `🪨 Titán de Granito activa [Piel de Piedra] (+20 Armadura). Se vuelve impenetrable.`;
+        actionDescription = `🪨 Titán de Granito activa [Prisión Terrestre] (+20 Armadura). Bloquea 2 gemas.`;
+        boardEffect = { type: 'lock', count: 2 };
       } else {
         updatedEnemy.energy += 2;
         actionDescription = `🔋 Titán se funde con la tierra ganando +2 de Energía.`;
@@ -185,7 +202,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     case 4: // Vacío Cósmico (Avatar del Caos)
       preferredColor = 'purple'; // Prioriza Calaveras/Caos
       if (enemyEnergy >= 4) {
-        const chaosDmg = 16;
+        const chaosDmg = 30;
         updatedPlayer.hp = Math.max(0, updatedPlayer.hp - chaosDmg);
         updatedEnemy.energy = Math.max(0, enemyEnergy - 4);
         actionDescription = `🌌 Avatar de Caos ejecuta [Supernova del Vacío] infligiendo ${chaosDmg} daño puro directo a HP.`;
@@ -198,10 +215,9 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     case 5: // Monstruo Prismático
       preferredColor = 'blue'; // Cristalino
       if (enemyEnergy >= 3) {
-        // Causa congelamiento
         updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
-        actionDescription = `💎 Monstruo Prismático lanza [Prisma Congelante] (-3 Energía). Quedas Congelado por 2 turnos.`;
-        // El estado de congelamiento se aplicará y manejará en App.js
+        actionDescription = `💎 Monstruo Prismático lanza [Prisma Congelante] (-3 Energía). Congela 3 gemas en el tablero.`;
+        boardEffect = { type: 'freeze', count: 3 };
       } else {
         updatedEnemy.energy += 2;
         actionDescription = `🔋 El Monstruo refracta la luz circundante (+2 Energía).`;
@@ -211,7 +227,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     case 6: // Señor del Viento
       preferredColor = 'yellow';
       if (enemyEnergy >= 3) {
-        const baseDmg = 15;
+        const baseDmg = 25;
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -220,7 +236,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
           updatedPlayer.hp = Math.max(0, updatedPlayer.hp - (baseDmg - playerShield));
         }
         updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
-        actionDescription = `🌪️ Señor del Viento desata un [Ciclón Devastador] (-3 Energía). Daño infligido de 15.`;
+        actionDescription = `🌪️ Señor del Viento desata un [Ciclón Devastador] (-3 Energía). Daño infligido de ${baseDmg}.`;
       } else {
         updatedEnemy.energy += 2;
         actionDescription = `🔋 El Señor del Viento llama a las ráfagas celestiales (+2 Energía).`;
@@ -233,7 +249,8 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
         const armorGained = 25;
         updatedEnemy.shield = (updatedEnemy.shield || 0) + armorGained;
         updatedEnemy.energy = Math.max(0, enemyEnergy - 4);
-        actionDescription = `❄️ Gargantúa Escarcha crea un [Escudo Glaciar] (+25 Armadura) y absorbe el frío.`;
+        actionDescription = `❄️ Gargantúa Escarcha crea [Escudo Glaciar] (+25 Armadura) y congela 2 gemas.`;
+        boardEffect = { type: 'freeze', count: 2 };
       } else {
         updatedEnemy.energy += 2;
         actionDescription = `🔋 Gargantúa congela la humedad del aire (+2 Energía).`;
@@ -243,7 +260,7 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     case 8: // Supremo del Caos
       preferredColor = 'purple';
       if (enemyEnergy >= 4) {
-        const baseDmg = 22;
+        const baseDmg = 45;
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -259,9 +276,96 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
       }
       break;
 
+    case 9: // Desierto de Huesos (Faraón Maldito)
+      preferredColor = 'green';
+      if (enemyEnergy >= 3) {
+        // Roba escudo y hace daño
+        const stolenShield = Math.min(updatedPlayer.shield || 0, 30);
+        updatedPlayer.shield = Math.max(0, (updatedPlayer.shield || 0) - stolenShield);
+        updatedEnemy.shield = (updatedEnemy.shield || 0) + stolenShield;
+        
+        updatedPlayer.hp = Math.max(0, updatedPlayer.hp - 20); // Daño directo de maldición
+        updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
+        actionDescription = `🐫 Faraón Maldito invoca [Maldición de Arena] (-3 Energía). Roba ${stolenShield} de escudo e inflige 20 de daño directo.`;
+      } else {
+        updatedEnemy.energy += 2;
+        actionDescription = `🔋 El Faraón drena el calor del desierto (+2 Energía).`;
+      }
+      break;
+
+    case 10: // Pantano Tóxico (Hidra Venenosa)
+      preferredColor = 'green';
+      if (enemyEnergy >= 3) {
+        // Veneno masivo ignorando escudos
+        const poisonDmg = 40;
+        updatedPlayer.hp = Math.max(0, updatedPlayer.hp - poisonDmg); // Ignora escudos totalmente
+        updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
+        actionDescription = `🐍 Hidra Venenosa lanza [Lluvia Ácida] (-3 Energía). ¡${poisonDmg} de daño tóxico que ignora toda armadura!`;
+      } else {
+        updatedEnemy.energy += 2;
+        actionDescription = `🔋 La Hidra secreta más toxinas letales (+2 Energía).`;
+      }
+      break;
+
+    case 11: // Ciudad Neón (Ciborg Renegado)
+      preferredColor = 'yellow';
+      if (enemyEnergy >= 4) {
+        // Daño masivo de plasma
+        const plasmaDmg = 80;
+        const playerShield = updatedPlayer.shield || 0;
+        if (playerShield >= plasmaDmg) {
+          updatedPlayer.shield -= plasmaDmg;
+        } else {
+          updatedPlayer.shield = 0;
+          updatedPlayer.hp = Math.max(0, updatedPlayer.hp - (plasmaDmg - playerShield));
+        }
+        updatedEnemy.energy = Math.max(0, enemyEnergy - 4);
+        actionDescription = `🤖 Ciborg Renegado dispara [Cañón de Riel Orbital] (-4 Energía) causando ${plasmaDmg} de daño catastrófico.`;
+      } else {
+        updatedEnemy.energy += 3;
+        actionDescription = `🔋 El Ciborg sobrecarga sus baterías de fusión (+3 Energía).`;
+      }
+      break;
+
+    case 12: // Reino Celestial (Serafín Supremo)
+      preferredColor = 'blue';
+      if (enemyEnergy >= 5) {
+        // Curación extrema y daño de juicio
+        updatedEnemy.hp = Math.min(updatedEnemy.maxHp, updatedEnemy.hp + 200);
+        
+        // Daño del juicio: te baja a 1 HP si no tienes escudo
+        const playerShield = updatedPlayer.shield || 0;
+        if (playerShield < 50) {
+          updatedPlayer.hp = 1;
+          actionDescription = `👼 Serafín Supremo dicta [Juicio Final] (-5 Energía). Te curas poco, ¡su luz fulmina tus defensas dejándote a 1 HP!`;
+        } else {
+          updatedPlayer.shield = Math.max(0, playerShield - 150);
+          actionDescription = `👼 Serafín Supremo dicta [Juicio Final] (-5 Energía). Tu escudo logró resistir parte de la furia divina (-150 Escudo).`;
+        }
+        updatedEnemy.energy = Math.max(0, enemyEnergy - 5);
+      } else {
+        updatedEnemy.energy += 2;
+        actionDescription = `🔋 El Serafín canaliza luz pura del génesis (+2 Energía).`;
+      }
+      break;
+
     default:
-      updatedEnemy.energy += 2;
-      actionDescription = `🔋 El enemigo acumula energía elemental (+2 Energía).`;
+      if (enemyEnergy >= 3) {
+        const fallbackMultiplier = 1 + ((maxUnlockedWorld - 1) * 0.2);
+        const fallbackDmg = Math.floor((15 + (worldId * 5)) * fallbackMultiplier); // Escala el daño base con el mundo
+        const playerShield = updatedPlayer.shield || 0;
+        if (playerShield >= fallbackDmg) {
+          updatedPlayer.shield -= fallbackDmg;
+        } else {
+          updatedPlayer.shield = 0;
+          updatedPlayer.hp = Math.max(0, updatedPlayer.hp - (fallbackDmg - playerShield));
+        }
+        updatedEnemy.energy = Math.max(0, enemyEnergy - 3);
+        actionDescription = `💥 El enemigo desata un [Golpe Feroz] (-3 Energía). Inflige ${fallbackDmg} de daño.`;
+      } else {
+        updatedEnemy.energy += 2;
+        actionDescription = `🔋 El enemigo acumula energía elemental (+2 Energía).`;
+      }
       break;
   }
 
@@ -276,15 +380,17 @@ export function executeAdvancedEnemyTurn(enemyState, playerState, currentWorld, 
     updatedPlayer,
     actionDescription,
     recommendedMove,
+    boardEffect,
   };
 }
 
 /**
  * Pronostica la siguiente intención del jefe.
  */
-export function forecastBossIntent(enemyState, currentWorld) {
-  const worldId = currentWorld?.id || 1;
-  const energy = enemyState.energy || 0;
+export const forecastBossIntent = (enemy, world, maxUnlockedWorld = 1) => {
+  const rawWorldId = world?.id || 1;
+  const worldId = ((rawWorldId - 1) % 12) + 1;
+  const energy = enemy?.energy || 0;
 
   switch (worldId) {
     case 1:
@@ -312,6 +418,11 @@ export function forecastBossIntent(enemyState, currentWorld) {
       if (energy >= 4) return { type: 'attack', value: 22, desc: 'Llamarada del Caos: 22 Daño' };
       return { type: 'energy', value: 3, desc: 'Desatar Entropía: +3 Energía' };
     default:
+      if (energy >= 3) {
+        const fallbackMultiplier = 1 + ((maxUnlockedWorld - 1) * 0.2);
+        const fallbackDmg = Math.floor((15 + (worldId * 5)) * fallbackMultiplier);
+        return { type: 'attack', value: fallbackDmg, desc: `Golpe Feroz: ${fallbackDmg} Daño` };
+      }
       return { type: 'energy', value: 2, desc: 'Acumular Energía: +2 Energía' };
   }
 }

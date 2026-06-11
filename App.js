@@ -21,7 +21,10 @@ import {
   Image,
   Platform,
   TextInput,
+  Vibration,
 } from 'react-native';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import GameBoard from './src/components/GameBoard';
 import { executeCardEffect } from './src/utils/gameEngine';
@@ -76,7 +79,103 @@ const CARDS_POOL = {
   // Cartas exclusivas de la tienda
   c8: { id: 'c8', name: 'Fénix de Ceniza', type: 'Ataque', manaCost: { red: 3 }, totalCost: 3, effectValue: 22, description: 'Desciende en llamas infligiendo 22 de daño masivo.', price: 200, image: require('./assets/ash_phoenix.png') },
   c9: { id: 'c9', name: 'Hechicero Curativo', type: 'Defensa', manaCost: { green: 3 }, totalCost: 3, effectValue: 25, description: 'Luz sagrada que sana o restaura 25 puntos de HP/Escudo.', price: 150, image: require('./assets/healing_sorcerer.png') },
+
+  // --- EXPANSIÓN MÍTICA (30 CARTAS DE LATE-GAME) ---
+  c31: { id: 'c31', name: 'Excalibur Ígnea', type: 'Ataque', manaCost: { red: 5 }, totalCost: 5, effectValue: 60, description: 'Corte que incinera la armadura enemiga (60 dmg).', price: 600, image: require('./assets/red_dragon.png') },
+  c32: { id: 'c32', name: 'Muro del Coloso', type: 'Defensa', manaCost: { green: 5 }, totalCost: 5, effectValue: 75, description: 'Defensa absoluta. Otorga 75 de escudo inquebrantable.', price: 550, image: require('./assets/golem.png') },
+  c33: { id: 'c33', name: 'Lanza Relámpago', type: 'Hechizo', manaCost: { yellow: 4 }, totalCost: 4, effectValue: 55, description: 'Rayo perforante directo al corazón (55 dmg).', price: 650, image: require('./assets/griffin.png') },
+  c34: { id: 'c34', name: 'Supernova', type: 'Hechizo', manaCost: { purple: 6 }, totalCost: 6, effectValue: 90, description: 'Explosión de estrella masiva (90 dmg mágico).', price: 1200, image: require('./assets/star_specter.png') },
+  c35: { id: 'c35', name: 'Cero Absoluto', type: 'Ataque', manaCost: { blue: 5 }, totalCost: 5, effectValue: 65, description: 'Congela las moléculas enemigas (65 dmg).', price: 700, image: require('./assets/volt_illusionist.png') },
+  c36: { id: 'c36', name: 'Fénix Renacido', type: 'Defensa', manaCost: { red: 6 }, totalCost: 6, effectValue: 85, description: 'Regeneración mitológica. (85 de escudo).', price: 1000, image: require('./assets/ash_phoenix.png') },
+  c37: { id: 'c37', name: 'Terremoto Mayor', type: 'Hechizo', manaCost: { green: 5 }, totalCost: 5, effectValue: 60, description: 'Sacude la tierra. (60 dmg mágico directo).', price: 600, image: require('./assets/geode_golem.png') },
+  c38: { id: 'c38', name: 'Agujero Negro', type: 'Ataque', manaCost: { purple: 7 }, totalCost: 7, effectValue: 120, description: 'Destruye el espacio-tiempo. (120 de daño).', price: 1800, image: require('./assets/star_specter.png') },
+  c39: { id: 'c39', name: 'Armadura Astral', type: 'Defensa', manaCost: { yellow: 4 }, totalCost: 4, effectValue: 50, description: 'Coraza tejida de constelaciones (50 escudo).', price: 500, image: require('./assets/healing_sorcerer.png') },
+  c40: { id: 'c40', name: 'Espada de Leviatán', type: 'Ataque', manaCost: { blue: 4 }, totalCost: 4, effectValue: 55, description: 'Filo impregnado del abismo marino (55 dmg).', price: 600, image: require('./assets/volt_illusionist.png') },
+  c41: { id: 'c41', name: 'Aliento de Dragón', type: 'Hechizo', manaCost: { red: 4 }, totalCost: 4, effectValue: 50, description: 'Fuego puro que derrite rocas (50 dmg).', price: 550, image: require('./assets/red_dragon.png') },
+  c42: { id: 'c42', name: 'Bosque Protector', type: 'Defensa', manaCost: { green: 4 }, totalCost: 4, effectValue: 60, description: 'Invoca un bosque entero de defensa (60 escudo).', price: 580, image: require('./assets/emerald_knight.png') },
+  c43: { id: 'c43', name: 'Juicio Divino', type: 'Hechizo', manaCost: { yellow: 5 }, totalCost: 5, effectValue: 70, description: 'Sentencia de los dioses del rayo (70 dmg).', price: 850, image: require('./assets/griffin.png') },
+  c44: { id: 'c44', name: 'Devorador de Almas', type: 'Ataque', manaCost: { purple: 5 }, totalCost: 5, effectValue: 75, description: 'Arranca la vitalidad enemiga (75 dmg).', price: 900, image: require('./assets/star_specter.png') },
+  c45: { id: 'c45', name: 'Barrera de Diamante', type: 'Defensa', manaCost: { blue: 6 }, totalCost: 6, effectValue: 100, description: 'El material más duro del universo (100 escudo).', price: 1500, image: require('./assets/volt_illusionist.png') },
+  c46: { id: 'c46', name: 'Lluvia de Meteoros', type: 'Ataque', manaCost: { red: 5 }, totalCost: 5, effectValue: 65, description: 'Rocas espaciales en llamas (65 dmg).', price: 750, image: require('./assets/geode_golem.png') },
+  c47: { id: 'c47', name: 'Manto de Gea', type: 'Defensa', manaCost: { green: 6 }, totalCost: 6, effectValue: 90, description: 'La Madre Tierra te protege (90 escudo).', price: 1200, image: require('./assets/emerald_knight.png') },
+  c48: { id: 'c48', name: 'Rayo Aniquilador', type: 'Hechizo', manaCost: { yellow: 6 }, totalCost: 6, effectValue: 85, description: 'Descarga inmensa de energía pura (85 dmg).', price: 1100, image: require('./assets/griffin.png') },
+  c49: { id: 'c49', name: 'Filo del Vacío', type: 'Ataque', manaCost: { purple: 6 }, totalCost: 6, effectValue: 88, description: 'Cuchilla de antimateria (88 dmg).', price: 1150, image: require('./assets/star_specter.png') },
+  c50: { id: 'c50', name: 'Tsunami de Éter', type: 'Hechizo', manaCost: { blue: 5 }, totalCost: 5, effectValue: 70, description: 'Ola mágica destructora (70 dmg mágico).', price: 850, image: require('./assets/volt_illusionist.png') },
+  c51: { id: 'c51', name: 'Cenizas Fénix', type: 'Ataque', manaCost: { red: 4 }, totalCost: 4, effectValue: 48, description: 'Quema con restos de ave mítica (48 dmg).', price: 500, image: require('./assets/ash_phoenix.png') },
+  c52: { id: 'c52', name: 'Escudo Milenario', type: 'Defensa', manaCost: { green: 5 }, totalCost: 5, effectValue: 80, description: 'Protección con 1000 años de historia (80 escudo).', price: 950, image: require('./assets/geode_golem.png') },
+  c53: { id: 'c53', name: 'Prisma Solar', type: 'Hechizo', manaCost: { yellow: 5 }, totalCost: 5, effectValue: 72, description: 'Concentra la luz de una estrella (72 dmg).', price: 880, image: require('./assets/griffin.png') },
+  c54: { id: 'c54', name: 'Espíritu de Nebulosa', type: 'Defensa', manaCost: { purple: 5 }, totalCost: 5, effectValue: 75, description: 'Cuerpo etéreo e invulnerable (75 escudo).', price: 900, image: require('./assets/star_specter.png') },
+  c55: { id: 'c55', name: 'Lanza de Hielo', type: 'Ataque', manaCost: { blue: 4 }, totalCost: 4, effectValue: 52, description: 'Estalactita afilada como bisturí (52 dmg).', price: 520, image: require('./assets/volt_illusionist.png') },
+  c56: { id: 'c56', name: 'Ira del Volcán', type: 'Hechizo', manaCost: { red: 5 }, totalCost: 5, effectValue: 78, description: 'Erupción mágica en todo el tablero (78 dmg).', price: 950, image: require('./assets/red_dragon.png') },
+  c57: { id: 'c57', name: 'Aura Esmeralda', type: 'Defensa', manaCost: { green: 5 }, totalCost: 5, effectValue: 70, description: 'Luz de gemas que cura y escuda (70 escudo).', price: 800, image: require('./assets/emerald_knight.png') },
+  c58: { id: 'c58', name: 'Destello Crítico', type: 'Ataque', manaCost: { yellow: 4 }, totalCost: 4, effectValue: 60, description: 'Ataque tan rápido que es invisible (60 dmg).', price: 650, image: require('./assets/griffin.png') },
+  c59: { id: 'c59', name: 'Colapso Cuántico', type: 'Hechizo', manaCost: { purple: 7 }, totalCost: 7, effectValue: 150, description: 'La carta más fuerte de la historia. (150 dmg).', price: 2500, image: require('./assets/star_specter.png') },
+  c60: { id: 'c60', name: 'Égida Absoluta', type: 'Defensa', manaCost: { blue: 7 }, totalCost: 7, effectValue: 150, description: 'Invulnerabilidad casi divina (150 escudo).', price: 2500, image: require('./assets/healing_sorcerer.png') },
 };
+
+// ============================================================
+//  BASE DE DATOS DE RELIQUIAS Y POCIONES
+// ============================================================
+const RELICS_POOL = {
+  r1: { id: 'r1', name: 'Corazón de Hierro', description: 'Otorga +20 HP Máximo permanentemente.', emoji: '❤️', price: 150 },
+  r2: { id: 'r2', name: 'Escudo Anciano', description: 'Inicias cada combate con +15 Escudo.', emoji: '🛡️', price: 200 },
+  r3: { id: 'r3', name: 'Reloj de Arena', description: 'Inicias cada combate con +1 Punto de Acción extra (PA).', emoji: '⌛', price: 300 },
+  r_mage: { id: 'r_mage', name: 'Vampirismo Mágico', description: 'Cura 10% del daño no bloqueado que infliges al enemigo.', emoji: '🧛', price: null },
+  r_paladin: { id: 'r_paladin', name: 'Égida Sagrada', description: 'Inicias cada combate con +10 Escudo y curas 5 HP al ganar.', emoji: '🌟', price: null },
+  r_assassin: { id: 'r_assassin', name: 'Paso Sombrío', description: 'Inicias cada combate con +1 Punto de Acción extra.', emoji: '💨', price: null },
+  r4: { id: 'r4', name: 'Cáliz del Rey', description: 'Te curas 15 HP al vencer un combate.', emoji: '🍷', price: 250 },
+  r5: { id: 'r5', name: 'Moneda de la Suerte', description: 'Ganas un 20% más de oro en cada victoria.', emoji: '💰', price: 220 },
+};
+
+const POTIONS_POOL = {
+  p1: { id: 'p1', name: 'Poción de Vida', description: 'Restaura 50 HP al instante (Sin costo de PA).', emoji: '❤️', price: 50, type: 'heal' },
+  p2: { id: 'p2', name: 'Poción de Escudo', description: 'Otorga 30 de Escudo de inmediato (Sin costo de PA).', emoji: '🛡️', price: 40, type: 'shield' },
+  p3: { id: 'p3', name: 'Elixir Rápido', description: 'Te otorga +1 PA este turno.', emoji: '⚡', price: 80, type: 'energy' },
+};
+
+// ============================================================
+//  BASE DE DATOS DE EVENTOS
+// ============================================================
+const EVENTS_POOL = [
+  {
+    id: 'e1',
+    title: 'El Altar de Sangre',
+    text: 'Encuentras un altar antiguo manchado de sangre seca. Una voz susurra en tu mente: "Ofréceme tu vitalidad y te otorgaré poder terrenal".',
+    options: [
+      { text: 'Sacrificar 20 HP por 150 🪙', effect: { hpChange: -20, goldChange: 150 }, type: 'danger' },
+      { text: 'Alejarse lentamente', effect: {}, type: 'neutral' }
+    ]
+  },
+  {
+    id: 'e2',
+    title: 'El Mercader Misterioso',
+    text: 'Una figura encapuchada te ofrece un trato rápido: intercambiar oro por un objeto mágico permanente.',
+    options: [
+      { text: 'Pagar 50 🪙 por Reliquia Aleatoria', effect: { goldChange: -50, getRelic: true }, type: 'buy' },
+      { text: 'Rechazar la oferta', effect: {}, type: 'neutral' }
+    ]
+  },
+  {
+    id: 'e3',
+    title: 'La Fuente Luminosa',
+    text: 'Un manantial de agua brillante y cristalina. Beber de ella parece restaurar heridas graves, pero dejar caer una moneda atrae más vitalidad.',
+    options: [
+      { text: 'Beber agua (+40 HP)', effect: { hpChange: 40 }, type: 'heal' },
+      { text: 'Tirar moneda (-20 🪙, +15 HP Máx)', effect: { goldChange: -20, maxHpChange: 15 }, type: 'upgrade' }
+    ]
+  },
+  {
+    id: 'e4',
+    title: 'Cofre Enredado',
+    text: 'Ves un cofre atrapado entre enredaderas espinosas. Puedes intentar abrirlo a la fuerza sufriendo daño o usar oro para pagar un extractor local.',
+    options: [
+      { text: 'Forzar apertura (-15 HP, gana Reliquia)', effect: { hpChange: -15, getRelic: true }, type: 'danger' },
+      { text: 'Pagar extractor (-100 🪙, gana Reliquia)', effect: { goldChange: -100, getRelic: true }, type: 'buy' },
+      { text: 'Dejarlo en paz', effect: {}, type: 'neutral' }
+    ]
+  }
+];
+
 
 // ============================================================
 //  BASE DE DATOS DE MUNDOS ELEMENTALES
@@ -90,7 +189,7 @@ const WORLDS = [
     vignetteColor: 'rgba(239, 68, 68, 0.2)',
     boardShadowColor: '#ea580c',
     enemyName: 'Demonio de Asberos',
-    enemyHp: 120,
+    enemyHp: 300,
     enemyEmoji: '🌋',
     enemyType: 'DEMON',
   },
@@ -102,7 +201,7 @@ const WORLDS = [
     vignetteColor: 'rgba(14, 165, 233, 0.2)',
     boardShadowColor: '#0ea5e9',
     enemyName: 'Kirin Ancestral',
-    enemyHp: 150,
+    enemyHp: 450,
     enemyEmoji: '⚡',
     enemyType: 'CYBER',
   },
@@ -114,7 +213,7 @@ const WORLDS = [
     vignetteColor: 'rgba(16, 185, 129, 0.2)',
     boardShadowColor: '#10b981',
     enemyName: 'Titán de Granito',
-    enemyHp: 180,
+    enemyHp: 600,
     enemyEmoji: '🪨',
     enemyType: 'DEMON',
   },
@@ -126,7 +225,7 @@ const WORLDS = [
     vignetteColor: 'rgba(168, 85, 247, 0.2)',
     boardShadowColor: '#a855f7',
     enemyName: 'Avatar del Caos',
-    enemyHp: 220,
+    enemyHp: 800,
     enemyEmoji: '🌌',
     enemyType: 'CYBER',
   },
@@ -138,7 +237,7 @@ const WORLDS = [
     vignetteColor: 'rgba(236, 72, 153, 0.2)',
     boardShadowColor: '#ec4899',
     enemyName: 'Monstruo Prismático',
-    enemyHp: 250,
+    enemyHp: 1000,
     enemyEmoji: '💎',
     enemyType: 'CYBER',
   },
@@ -150,7 +249,7 @@ const WORLDS = [
     vignetteColor: 'rgba(56, 189, 248, 0.2)',
     boardShadowColor: '#38bdf8',
     enemyName: 'Señor del Viento',
-    enemyHp: 280,
+    enemyHp: 1300,
     enemyEmoji: '🌪️',
     enemyType: 'CYBER',
   },
@@ -162,7 +261,7 @@ const WORLDS = [
     vignetteColor: 'rgba(103, 232, 249, 0.2)',
     boardShadowColor: '#67e8f9',
     enemyName: 'Gargantúa Escarcha',
-    enemyHp: 320,
+    enemyHp: 1600,
     enemyEmoji: '❄️',
     enemyType: 'DEMON',
   },
@@ -174,34 +273,134 @@ const WORLDS = [
     vignetteColor: 'rgba(244, 63, 94, 0.2)',
     boardShadowColor: '#f43f5e',
     enemyName: 'Supremo del Caos',
-    enemyHp: 400,
+    enemyHp: 2500,
     enemyEmoji: '👹',
     enemyType: 'DEMON',
+  },
+  {
+    id: 9,
+    name: 'Desierto de Huesos',
+    bgColor: '#1a1402',
+    bgImage: require('./assets/bg_stone.png'),
+    vignetteColor: 'rgba(217, 119, 6, 0.2)',
+    boardShadowColor: '#d97706',
+    enemyName: 'Faraón Maldito',
+    enemyHp: 3000,
+    enemyEmoji: '🐫',
+    enemyType: 'DEMON',
+  },
+  {
+    id: 10,
+    name: 'Pantano Tóxico',
+    bgColor: '#021a08',
+    bgImage: require('./assets/bg_stone.png'),
+    vignetteColor: 'rgba(34, 197, 94, 0.2)',
+    boardShadowColor: '#22c55e',
+    enemyName: 'Hidra Venenosa',
+    enemyHp: 3800,
+    enemyEmoji: '🐍',
+    enemyType: 'DEMON',
+  },
+  {
+    id: 11,
+    name: 'Neo-Ciudad Neón',
+    bgColor: '#05021a',
+    bgImage: require('./assets/bg_lightning.png'),
+    vignetteColor: 'rgba(59, 130, 246, 0.2)',
+    boardShadowColor: '#3b82f6',
+    enemyName: 'Ciborg Renegado',
+    enemyHp: 4800,
+    enemyEmoji: '🤖',
+    enemyType: 'CYBER',
+  },
+  {
+    id: 12,
+    name: 'Reino Celestial',
+    bgColor: '#1a1811',
+    bgImage: require('./assets/bg_cosmic.png'),
+    vignetteColor: 'rgba(250, 204, 21, 0.2)',
+    boardShadowColor: '#facc15',
+    enemyName: 'Serafín Supremo',
+    enemyHp: 6000,
+    enemyEmoji: '👼',
+    enemyType: 'CYBER',
   }
 ];
 
 // Mazos únicos por mundo (cards que el enemigo tiene boca abajo + deck inicial jugador)
 const WORLD_DECKS = {
-  1: { playerDeck: ['c1', 'c2', 'c3'], enemyCards: 4 },    // Lava
-  2: { playerDeck: ['c3', 'c4', 'c5'], enemyCards: 5 },    // Rayo
-  3: { playerDeck: ['c10', 'c11', 'c12'], enemyCards: 5 }, // Piedra
-  4: { playerDeck: ['c13', 'c14', 'c15'], enemyCards: 6 }, // Cósmico
-  5: { playerDeck: ['c16', 'c17', 'c18'], enemyCards: 6 }, // Cristal
-  6: { playerDeck: ['c21', 'c22', 'c23'], enemyCards: 6 }, // Viento
-  7: { playerDeck: ['c24', 'c25', 'c26'], enemyCards: 7 }, // Glaciar
-  8: { playerDeck: ['c27', 'c28', 'c30'], enemyCards: 8 }, // Caos
+  1: { playerDeck: ['c1', 'c2', 'c3'], name: "Mazo Ígneo Base" }, // Lava
+  2: { playerDeck: ['c4', 'c5', 'c6'], name: "Mazo Tormenta" }, // Rayo
+  3: { playerDeck: ['c10', 'c11', 'c32'], name: "Mazo de Granito" }, // Piedra
+  4: { playerDeck: ['c13', 'c14', 'c34'], name: "Mazo del Vacío" }, // Cósmico
+  5: { playerDeck: ['c16', 'c17', 'c45'], name: "Mazo Diamante" }, // Cristal
+  6: { playerDeck: ['c21', 'c22', 'c48'], name: "Mazo Huracán" }, // Viento
+  7: { playerDeck: ['c24', 'c35', 'c55'], name: "Mazo Glaciar" }, // Glaciar
+  8: { playerDeck: ['c38', 'c59', 'c60'], name: "Mazo Supremo" }, // Caos
+  9: { playerDeck: ['c37', 'c47', 'c52'], name: "Mazo Terremoto" }, // Huesos
+  10: { playerDeck: ['c42', 'c57', 'c60'], name: "Mazo Antídoto" }, // Pantano
+  11: { playerDeck: ['c33', 'c48', 'c58'], name: "Mazo Neón" }, // Cyberpunk
+  12: { playerDeck: ['c34', 'c59', 'c60'], name: "Mazo Deidad" }, // Celestial
 };
 
+const HERO_CLASSES = [
+  {
+    id: 'mage',
+    name: 'Píromante Místico',
+    emoji: '🧙‍♂️',
+    color: '#f43f5e',
+    desc: 'Maestro del fuego. Inicia con poca vida pero un mazo devastador.',
+    startHp: 75,
+    startShield: 10,
+    startDeck: ['c1', 'c1', 'c2', 'c3', 'c47'], // Ataques de fuego y quemaduras
+    relic: 'r_mage'
+  },
+  {
+    id: 'paladin',
+    name: 'Paladín de Luz',
+    emoji: '🛡️',
+    color: '#fbbf24',
+    desc: 'Guerrero sagrado. Alta vitalidad y defensas impenetrables.',
+    startHp: 120,
+    startShield: 30,
+    startDeck: ['c2', 'c2', 'c10', 'c34', 'c11'], // Escudos y golpes contundentes
+    relic: 'r_paladin'
+  },
+  {
+    id: 'assassin',
+    name: 'Asesino Sombrío',
+    emoji: '🗡️',
+    color: '#10b981',
+    desc: 'Letal y rápido. Mazo enfocado en veneno continuo.',
+    startHp: 90,
+    startShield: 15,
+    startDeck: ['c1', 'c14', 'c42', 'c42', 'c60'], // Venenos e ignorar armadura
+    relic: 'r_assassin'
+  }
+];
+
 const SCREEN_W = Dimensions.get('window').width;
-const BOARD_WIDTH = Math.min(SCREEN_W - 32, 400);
+const SCREEN_H = Dimensions.get('window').height;
+const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.355, 300);
 
 
 // ============================================================
 //  COMPONENTE AUXILIAR: AvatarCard (con barras animadas)
 // ============================================================
-function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, status, bossIntent }) {
+function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, status, bossIntent, isHorizontal = false }) {
   const barColor = isPlayer ? '#10b981' : '#e11d48';
   const emoji = emojiOverride || (isPlayer ? '\uD83D\uDC32' : '\uD83E\uDD16');
+
+  // Animación de respiración / flote 3D
+  const idleAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(idleAnim, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(idleAnim, { toValue: 0, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
 
   // Barra animada de vida
   const animatedHp = useRef(new Animated.Value(hp)).current;
@@ -227,6 +426,90 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
     extrapolate: 'clamp',
   });
 
+  if (isHorizontal) {
+    return (
+      <Animated.View
+        style={[
+          styles.avatarHorizontalContainer,
+          {
+            transform: [{ translateX: shakeAnim.interpolate({ inputRange: [-1, 0, 1], outputRange: [-10, 0, 10] }) }],
+            backgroundColor: flashAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['rgba(0,0,0,0)', isPlayer ? 'rgba(251,191,36,0.4)' : 'rgba(239,68,68,0.4)']
+            })
+          }
+        ]}
+      >
+        <View style={{ flexDirection: isPlayer ? 'row' : 'row-reverse', alignItems: 'center', width: '100%' }}>
+          {/* Avatar Area */}
+          <View style={[styles.avatarFrameHorizontal, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
+            <Animated.Image 
+              source={isPlayer ? require('./assets/player_avatar.png') : require('./assets/boss_avatar.png')}
+              style={{
+                width: 50, height: 50,
+                transform: [
+                  { translateY: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [-3, 3] }) },
+                  { scale: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] }) }
+                ]
+              }}
+              resizeMode="contain"
+            />
+            {floatingDamage && (
+              <Animated.View style={[
+                styles.floatingDamageContainer,
+                { transform: [{ translateY: floatingDamage.animY }], opacity: floatingDamage.animOpacity }
+              ]}>
+                <Text style={[
+                  styles.floatingDamageText,
+                  { color: floatingDamage.type === 'Defensa' ? '#10b981' : '#ef4444', fontFamily: FONT_HUD },
+                  floatingDamage.isCrit && { color: '#fbbf24', fontSize: 30, fontWeight: '900', textShadowColor: '#b45309', textShadowRadius: 8 }
+                ]}>
+                  {floatingDamage.value}
+                </Text>
+              </Animated.View>
+            )}
+          </View>
+
+          {/* Info Area */}
+          <View style={[styles.avatarInfoHorizontal, isPlayer ? { marginLeft: 12 } : { marginRight: 12, alignItems: 'flex-end' }]}>
+            <Text style={[styles.avatarNameHorizontal, { fontFamily: FONT_TITLE }]} numberOfLines={1}>{name}</Text>
+            
+            <View style={[styles.statsRowHorizontal, isPlayer ? { justifyContent: 'flex-start' } : { justifyContent: 'flex-end' }]}>
+              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13, marginRight: isPlayer ? 10 : 0, marginLeft: isPlayer ? 0 : 10 }]}>❤️ {Math.ceil(hp)}</Text>
+              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13 }]}>🛡️ {Math.ceil(shield)}</Text>
+            </View>
+
+            <View style={styles.barBgHorizontal}>
+              <Animated.View style={[styles.barFill, { width: hpPercent, backgroundColor: barColorAnim }]} />
+              <Animated.View style={[styles.barGlow, { width: hpPercent, backgroundColor: barColorAnim, opacity: 0.4 }]} />
+            </View>
+
+            {/* Energía y Boss Intent */}
+            {!isPlayer && maxEnergy > 0 && (
+              <View style={[styles.energyRow, { justifyContent: 'flex-end', marginTop: 4 }]}>
+                {Array.from({ length: maxEnergy }).map((_, i) => (
+                  <View key={i} style={[styles.energyDot, i < energy ? styles.energyDotActive : null]} />
+                ))}
+              </View>
+            )}
+            {!isPlayer && bossIntent && (
+              <View style={[styles.bossIntentContainer, { alignItems: 'flex-end', marginTop: 4 }]}>
+                <View style={[styles.bossIntentBadge, { width: 'auto' }]}>
+                  <Text style={styles.bossIntentText}>
+                    {bossIntent.type === 'attack' ? '⚔️' :
+                     bossIntent.type === 'defend' ? '🛡️' :
+                     bossIntent.type === 'heal' ? '💚' :
+                     bossIntent.type === 'debuff' ? '🧪' : '⚡'} {bossIntent.desc}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Animated.View>
+    );
+  }
+
   return (
     <Animated.View
       style={[
@@ -241,8 +524,19 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         }
       ]}
     >
-      <View style={[styles.avatarFrame, isPlayer ? { borderColor: '#fbbf24' } : { borderColor: '#e11d48' }]}>
-        <Text style={styles.avatarEmoji}>{emoji}</Text>
+      <View style={[styles.avatarFrame, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
+        <Animated.Image 
+          source={isPlayer ? require('./assets/player_avatar.png') : require('./assets/boss_avatar.png')}
+          style={{
+            width: 55,
+            height: 55,
+            transform: [
+              { translateY: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [-4, 4] }) },
+              { scale: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.04] }) }
+            ]
+          }}
+          resizeMode="contain"
+        />
 
         {floatingDamage && (
           <Animated.View style={[
@@ -251,7 +545,7 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
           ]}>
             <Text style={[
               styles.floatingDamageText,
-              { color: floatingDamage.type === 'Defensa' ? '#10b981' : '#ef4444' },
+              { color: floatingDamage.type === 'Defensa' ? '#10b981' : '#ef4444', fontFamily: FONT_HUD },
               floatingDamage.isCrit && { color: '#fbbf24', fontSize: 30, fontWeight: '900', textShadowColor: '#b45309', textShadowRadius: 8 }
             ]}>
               {floatingDamage.value}
@@ -265,11 +559,11 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         )}
       </View>
 
-      <Text style={styles.avatarName} numberOfLines={1}>{name}</Text>
+      <Text style={[styles.avatarName, { fontFamily: FONT_TITLE, fontSize: 13, letterSpacing: 1 }]} numberOfLines={1}>{name}</Text>
 
       <View style={styles.statsRow}>
-        <Text style={styles.statText}>❤️ {Math.ceil(hp)}</Text>
-        <Text style={styles.statText}>🛡️ {Math.ceil(shield)}</Text>
+        <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 12 }]}>❤️ {Math.ceil(hp)}</Text>
+        <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 12 }]}>🛡️ {Math.ceil(shield)}</Text>
       </View>
 
       {/* Barra animada */}
@@ -398,16 +692,24 @@ const playSfx = (type) => {
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(120, now);
-      osc.frequency.exponentialRampToValueAtTime(700, now + 0.15);
-      osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc.connect(gain);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      if (ctx.createBiquadFilter) {
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+        osc.connect(filter);
+        filter.connect(gain);
+      } else {
+        osc.connect(gain);
+      }
       gain.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.45);
+      osc.stop(now + 0.35);
     } else if (type === 'cardPlay') {
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
@@ -491,6 +793,172 @@ const getRarityColor = (rarity) => ({
   comun: 'rgba(255,255,255,0.08)'
 }[rarity] || 'rgba(255,255,255,0.08)');
 
+const generateProceduralMap = (worldId) => {
+  const map = [];
+  map[4] = [{ id: 'f4_1', type: 'boss', next: [] }];
+  
+  const f3Types = ['campfire', 'shop', 'elite'];
+  map[3] = [
+    { id: 'f3_1', type: f3Types[Math.floor(Math.random() * f3Types.length)], next: ['f4_1'] },
+    { id: 'f3_2', type: f3Types[Math.floor(Math.random() * f3Types.length)], next: ['f4_1'] }
+  ];
+
+  const randomType = () => {
+    const r = Math.random();
+    if (r < 0.40) return 'combat';
+    if (r < 0.55) return 'elite';
+    if (r < 0.70) return 'shop';
+    if (r < 0.85) return 'event';
+    return 'campfire';
+  };
+
+  map[2] = [
+    { id: 'f2_1', type: randomType(), next: ['f3_1'] },
+    { id: 'f2_2', type: randomType(), next: ['f3_1', 'f3_2'] },
+    { id: 'f2_3', type: randomType(), next: ['f3_2'] }
+  ];
+
+  map[1] = [
+    { id: 'f1_1', type: 'combat', next: ['f2_1', 'f2_2'] },
+    { id: 'f1_2', type: 'combat', next: ['f2_2', 'f2_3'] }
+  ];
+
+  map[0] = [
+    { id: 'f0_1', type: 'start', next: ['f1_1'] },
+    { id: 'f0_2', type: 'start', next: ['f1_2'] }
+  ];
+
+  return map;
+};
+
+// ============================================================
+//  TUTORIAL MODAL
+// ============================================================
+const TutorialModal = ({ visible, onClose }) => {
+  const [step, setStep] = useState(0);
+
+  const steps = [
+    {
+      title: '¡Bienvenido al Multiverso!',
+      text: 'Este es un juego táctico híbrido. Tu objetivo es derrotar a los jefes de los 12 mundos escalando pisos en el mapa.',
+      emoji: '🌍'
+    },
+    {
+      title: 'El Tablero Match-3',
+      text: 'Durante el combate, deberás juntar 3 o más gemas del mismo color para generar Maná para tus cartas. Cada movimiento consume 1 Punto de Acción (PA).',
+      emoji: '🧩'
+    },
+    {
+      title: 'Cartas y Energía',
+      text: 'Usa el maná recolectado para jugar cartas de tu mano. Las cartas también consumen 1 PA al jugarse. Cuando te quedes sin PA, tu turno terminará automáticamente.',
+      emoji: '🎴'
+    },
+    {
+      title: 'Las Intenciones del Jefe',
+      text: 'A diferencia de ti, el Jefe se mueve por IA. En la parte superior verás sus intenciones. ¡Observa lo que va a hacer y defiéndete con escudo si planea atacar!',
+      emoji: '👁️'
+    }
+  ];
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent animationType="fade" visible={visible}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ backgroundColor: '#1e293b', borderWidth: 2, borderColor: '#3b82f6', borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+          <Text style={{ fontSize: 60, marginBottom: 16 }}>{steps[step].emoji}</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 12 }}>{steps[step].title}</Text>
+          <Text style={{ color: '#94a3b8', fontSize: 15, fontFamily: FONT_UI, textAlign: 'center', lineHeight: 22, marginBottom: 30 }}>{steps[step].text}</Text>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+            {step > 0 ? (
+              <TouchableOpacity onPress={() => setStep(step - 1)} style={{ padding: 12 }}>
+                <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>ANTERIOR</Text>
+              </TouchableOpacity>
+            ) : <View style={{ width: 80 }} />}
+
+            {step < steps.length - 1 ? (
+              <TouchableOpacity onPress={() => setStep(step + 1)} style={{ backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>SIGUIENTE</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={onClose} style={{ backgroundColor: '#10b981', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>¡A JUGAR!</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <View style={{ flexDirection: 'row', marginTop: 20, gap: 6 }}>
+            {steps.map((_, i) => (
+              <View key={i} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: i === step ? '#3b82f6' : '#334155' }} />
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ============================================================
+//  INVENTORY MODAL
+// ============================================================
+const InventoryModal = ({ visible, onClose, relics, collection }) => {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent animationType="slide" visible={visible}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ backgroundColor: '#0f172a', borderWidth: 2, borderColor: '#6366f1', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, maxHeight: '80%' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', fontFamily: FONT_TITLE }}>🎒 MOCHILA TÁCTICA</Text>
+            <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
+              <Text style={{ color: '#ef4444', fontSize: 20, fontWeight: 'bold' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flex: 1 }}>
+            <Text style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10 }}>TUS RELIQUIAS ({relics.length})</Text>
+            {relics.length === 0 ? (
+              <Text style={{ color: '#64748b', fontSize: 13, fontStyle: 'italic', marginBottom: 20 }}>No tienes reliquias.</Text>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                {relics.map(id => {
+                  const relic = RELICS_POOL[id];
+                  if (!relic) return null;
+                  return (
+                    <View key={id} style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 8, width: '48%', flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 24, marginRight: 8 }}>{relic.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{relic.name}</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10 }}>{relic.desc}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <Text style={{ color: '#60a5fa', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10 }}>COLECCIÓN DE CARTAS ({collection.length})</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {collection.map(id => {
+                const card = CARDS_POOL[id];
+                if (!card) return null;
+                const rColor = getRarityColor(getCardRarity(id));
+                return (
+                  <View key={id} style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderColor: rColor, borderWidth: 1, padding: 8, borderRadius: 8, alignItems: 'center', width: 80 }}>
+                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{getCardEmoji(card.type)}</Text>
+                    <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }} numberOfLines={2}>{card.name}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function App() {
   // --- NAVEGACIÓN Y ECONOMÍA ---
   const [gameState, setGameState] = useState('intro'); // 'intro' | 'level_selection' | 'shop' | 'deck_management' | 'combat'
@@ -499,8 +967,50 @@ export default function App() {
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
 
+  // Mapa Roguelike
+  const [actMap, setActMap] = useState([]);
+  const [currentNodeId, setCurrentNodeId] = useState(null);
+  const [currentEventId, setCurrentEventId] = useState(null);
+  const [completedNodes, setCompletedNodes] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+
+  useEffect(() => {
+    if (actMap.length === 0) {
+      setActMap(generateProceduralMap(maxUnlockedWorld));
+    }
+  }, [maxUnlockedWorld, actMap.length]);
+
   // Mazo activo y Colección del Jugador
   const [collection, setCollection] = useState(['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c22', 'c23', 'c24', 'c25', 'c26', 'c27', 'c28', 'c29', 'c30']); // Cartas compradas/desbloqueadas
+  
+  // Reliquias y Pociones
+  const [relics, setRelics] = useState([]);
+  const [potions, setPotions] = useState([]);
+
+  
+  // Forja (Upgrades)
+  const [cardUpgrades, setCardUpgrades] = useState({}); // ej: { 'c1': 1, 'c2': 2 }
+  
+  const getUpgradedCard = useCallback((cardId) => {
+    const baseCard = CARDS_POOL[cardId];
+    if (!baseCard) return null;
+    const level = cardUpgrades[cardId] || 0;
+    
+    // Escalar daño base un 20% por cada mundo desbloqueado después del primero
+    const worldMultiplier = 1 + ((maxUnlockedWorld - 1) * 0.20);
+    const scaledBaseEffect = Math.floor(baseCard.effectValue * worldMultiplier);
+
+    // Cada nivel suma +3 de efecto extra
+    const upgradedEffect = scaledBaseEffect + (level * 3);
+    const upgradedName = level > 0 ? `${baseCard.name} +${level}` : baseCard.name;
+    
+    return {
+      ...baseCard,
+      effectValue: upgradedEffect,
+      name: upgradedName,
+      level
+    };
+  }, [cardUpgrades, maxUnlockedWorld]);
 
   // 5 Mazos del Jugador
   const [playerDecks, setPlayerDecks] = useState([
@@ -532,6 +1042,104 @@ export default function App() {
   useEffect(() => {
     window.sfxEnabled = sfxEnabled;
   }, [sfxEnabled]);
+
+  // --- AUDIO DE FONDO (BGM) ---
+  const bgmSoundRef = useRef(null);
+
+  useEffect(() => {
+    let soundObj = null;
+    const initAudio = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: 'https://cdn.pixabay.com/download/audio/2022/01/21/audio_31743c58bb.mp3?filename=epic-battle-music-1-105763.mp3' },
+          { shouldPlay: sfxEnabled, isLooping: true, volume: 0.3 }
+        );
+        soundObj = sound;
+        bgmSoundRef.current = sound;
+      } catch (err) {
+        console.log('Error inicializando BGM:', err);
+      }
+    };
+    initAudio();
+
+    return () => {
+      if (soundObj) {
+        soundObj.unloadAsync();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (bgmSoundRef.current) {
+      if (sfxEnabled) {
+        bgmSoundRef.current.playAsync();
+      } else {
+        bgmSoundRef.current.pauseAsync();
+      }
+    }
+  }, [sfxEnabled]);
+
+  // --- GUARDADO LOCAL ---
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
+
+  const saveGameState = async () => {
+    try {
+      const data = {
+        maxUnlockedWorld,
+        gold,
+        level,
+        xp,
+        collection,
+        relics,
+        cardUpgrades,
+        playerDecks,
+        actMap,
+        completedNodes,
+        sfxEnabled,
+        hasSeenTutorial
+      };
+      await AsyncStorage.setItem('@rpg_save_data', JSON.stringify(data));
+    } catch (e) {
+      console.log('Error saving data', e);
+    }
+  };
+
+  const loadGameState = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('@rpg_save_data');
+      if (jsonValue != null) {
+        const data = JSON.parse(jsonValue);
+        if (data.maxUnlockedWorld) setMaxUnlockedWorld(data.maxUnlockedWorld);
+        if (data.gold !== undefined) setGold(data.gold);
+        if (data.level) setLevel(data.level);
+        if (data.xp !== undefined) setXp(data.xp);
+        if (data.collection) setCollection(data.collection);
+        if (data.relics) setRelics(data.relics);
+        if (data.cardUpgrades) setCardUpgrades(data.cardUpgrades);
+        if (data.playerDecks) setPlayerDecks(data.playerDecks);
+        if (data.actMap) setActMap(data.actMap);
+        if (data.completedNodes) setCompletedNodes(data.completedNodes);
+        if (data.sfxEnabled !== undefined) setSfxEnabled(data.sfxEnabled);
+        if (data.hasSeenTutorial !== undefined) setHasSeenTutorial(data.hasSeenTutorial);
+      }
+    } catch (e) {
+      console.log('Error loading data', e);
+    } finally {
+      setIsDataLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    loadGameState();
+  }, []);
+
+  // Auto-guardado
+  useEffect(() => {
+    if (isDataLoaded) {
+      saveGameState();
+    }
+  }, [maxUnlockedWorld, gold, level, xp, collection, relics, cardUpgrades, playerDecks, actMap, completedNodes, sfxEnabled, hasSeenTutorial]);
 
   // Estatus de banner animado de turno
   const [showTurnBanner, setShowTurnBanner] = useState(null); // null | 'player' | 'enemy'
@@ -595,6 +1203,7 @@ export default function App() {
   // Mundo de combate actual
   const [currentWorldIndex, setCurrentWorldIndex] = useState(0);
   const currentWorld = WORLDS[currentWorldIndex] || WORLDS[0];
+  const [selectedWorldIndex, setSelectedWorldIndex] = useState(null);
 
   // --- ESTADOS DE COMBATE ---
   const [actionPoints, setActionPoints] = useState(3);
@@ -605,6 +1214,8 @@ export default function App() {
   const [combatLog, setCombatLog] = useState('');
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [victoryPhase, setVictoryPhase] = useState('idle'); // 'idle' | 'showing' | 'transitioning'
+  const [isForging, setIsForging] = useState(false);
+  const [isRemovingCard, setIsRemovingCard] = useState(false);
 
   // Resetear selección cuando cambie el turno
   useEffect(() => {
@@ -622,9 +1233,21 @@ export default function App() {
   const nextWorldSlide = useRef(new Animated.Value(300)).current;
   const nextWorldOpacity = useRef(new Animated.Value(0)).current;
 
+  // Animación del Cofre 3D flotante
+  const chestFloatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(chestFloatAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(chestFloatAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
   // --- COMPORTAMIENTO DE IA VISUAL Y GRID ---
   const [grid, setGrid] = useState([]);
   const [currentAiMove, setCurrentAiMove] = useState(null);
+  const [incomingBoardEffect, setIncomingBoardEffect] = useState(null);
   const pendingAiUpdate = useRef(null);
 
   // --- ANIMACIONES Y VFX ---
@@ -689,7 +1312,7 @@ export default function App() {
   // Actualizar pronóstico de intención al iniciar turno del jugador
   useEffect(() => {
     if (gameState === 'combat' && turn === 'player' && enemy && currentWorld) {
-      const intent = forecastBossIntent(enemy, currentWorld);
+      const intent = forecastBossIntent(enemy, currentWorld, maxUnlockedWorld);
       setBossIntent(intent);
     }
   }, [turn, gameState, enemy, currentWorld]);
@@ -864,14 +1487,34 @@ export default function App() {
     ).start();
   }, []);
 
-  // --- COMPRAR CARTA EN LA TIENDA ---
-  const handleBuyCard = (cardId, price) => {
+  // --- COMPRAR ÍTEM EN LA TIENDA ---
+  const handleBuyItem = (item) => {
+    const price = item.price || 150;
     if (gold < price) {
       alert('¡No tienes suficiente oro!');
       return;
     }
+
+    if (item.id.startsWith('c')) {
+      if (collection.includes(item.id)) return alert('Ya tienes esta carta.');
+      setCollection(prev => {
+        if (prev.includes(item.id)) return prev;
+        return [...prev, item.id];
+      });
+    } else if (item.id.startsWith('r')) {
+      if (relics.includes(item.id)) return alert('Ya tienes esta reliquia.');
+      setRelics(prev => {
+        if (prev.includes(item.id)) return prev;
+        return [...prev, item.id];
+      });
+    } else if (item.id.startsWith('p')) {
+      if (potions.length >= 3) return alert('No tienes espacio para más pociones.');
+      setPotions(prev => [...prev, item.id]);
+    }
+
     setGold(prev => prev - price);
-    setCollection(prev => [...prev, cardId]);
+    playSfx('victory');
+    if (Platform.OS !== 'web') Vibration.vibrate(100);
   };
 
   // --- EQUIPAR/DESEQUIPAR EN DECK MANAGEMENT ---
@@ -901,35 +1544,16 @@ export default function App() {
 
     setCurrentWorldIndex(index);
     const targetWorld = WORLDS[index];
-
-    // Cargar estadísticas y cartas equipadas (escala con nivel)
-    const maxHpBonus = (level - 1) * 15;
-    const baseMaxHp = 100 + maxHpBonus;
-    const startingShield = 20 + (level - 1) * 5;
-    setPlayer({ hp: baseMaxHp, maxHp: baseMaxHp, shield: startingShield });
     
-    const initialEnemy = {
-      name: targetWorld.enemyName,
-      hp: targetWorld.enemyHp,
-      maxHp: targetWorld.enemyHp,
-      shield: 0,
-      energy: 3,
-      type: targetWorld.enemyType,
-    };
-    setEnemy(initialEnemy);
+    // Cargar mapa para este mundo
+    setActMap(generateProceduralMap(targetWorld.id));
+    setCurrentNodeId(null);
+    setCompletedNodes([]);
     
-    // Pronosticar intención inicial del jefe
-    const initialIntent = forecastBossIntent(initialEnemy, targetWorld);
-    setBossIntent(initialIntent);
-
-    setHand(activeDeck.map(id => ({ ...CARDS_POOL[id], charge: 0 })));
-    setPlayerStatus(null);
-    setEnemyStatus(null);
-    setActionPoints(3);
     setTurn('player');
-    setCombatLog(`⚔️ Has entrado a: ${targetWorld.name}. ¡Derrota al jefe!`);
+    setCombatLog(`🗺️ Has viajado a: ${targetWorld.name}.`);
     setShowVictoryModal(false);
-    changeGameState('combat');
+    changeGameState('level_selection');
   };
 
   // --- FX: SACUDIDAS Y TEXTOS FLOTANTES ---
@@ -1005,12 +1629,14 @@ export default function App() {
 
       // Al impactar: flash + onda expansiva + partículas
       const targetFlash = isPlayerAttacking ? enemyFlash : playerFlash;
+      
+      // Lanzamos el flash de impacto de forma independiente para no mezclar useNativeDriver true/false en paralelo, lo cual crashea Android
+      Animated.sequence([
+        Animated.timing(targetFlash, { toValue: 1, duration: 60, useNativeDriver: false }),
+        Animated.timing(targetFlash, { toValue: 0, duration: 300, useNativeDriver: false }),
+      ]).start();
+
       Animated.parallel([
-        // Flash de impacto
-        Animated.sequence([
-          Animated.timing(targetFlash, { toValue: 1, duration: 60, useNativeDriver: false }),
-          Animated.timing(targetFlash, { toValue: 0, duration: 300, useNativeDriver: false }),
-        ]),
         // Onda expansiva
         Animated.sequence([
           Animated.timing(shockwaveOpacity, { toValue: 1, duration: 50, useNativeDriver: true }),
@@ -1055,8 +1681,10 @@ export default function App() {
 
     if (isCrit) {
       playSfx('victory');
-      triggerShake(!isTargetPlayer);
-      triggerShake(!isTargetPlayer);
+      triggerShake(isTargetPlayer); // Sacudir al que recibe el daño crítico, no al revés
+      if (Platform.OS !== 'web') Vibration.vibrate(400); // Fuerte vibración en críticos
+    } else {
+      if (Platform.OS !== 'web') Vibration.vibrate(50); // Pequeña sacudida
     }
 
     targetY.setValue(10);
@@ -1074,9 +1702,13 @@ export default function App() {
   // --- AUTOMATIZACIÓN DE IA ENEMIGA (Árbol de Comportamiento por Mundo) ---
   const handleAiMoveComplete = useCallback(() => {
     if (!pendingAiUpdate.current) return;
-    const { actionDescription, updatedPlayer, updatedEnemy } = pendingAiUpdate.current;
+    const { actionDescription, updatedPlayer, updatedEnemy, boardEffect } = pendingAiUpdate.current;
     pendingAiUpdate.current = null;
     setCurrentAiMove(null);
+
+    if (boardEffect) {
+      setIncomingBoardEffect(boardEffect);
+    }
 
     // Aplicar estados al jugador según el mundo con 40% de probabilidad
     if (Math.random() < 0.4) {
@@ -1125,15 +1757,17 @@ export default function App() {
     if (gameState !== 'combat' || turn !== 'enemy' || player.hp <= 0 || enemy.hp <= 0) return;
 
     const timer = setTimeout(() => {
-      // Usamos la IA avanzada pasando el mundo actual y el tablero real para calcular movimientos reales
-      const { actionDescription, updatedPlayer, updatedEnemy, recommendedMove } = executeAdvancedEnemyTurn(
+      // Usamos la IA avanzada pasando el mundo actual, el tablero real y el estado del enemigo
+      const { actionDescription, updatedPlayer, updatedEnemy, recommendedMove, boardEffect } = executeAdvancedEnemyTurn(
         enemy,
         player,
         currentWorld,
-        grid
+        grid,
+        enemyStatus,
+        maxUnlockedWorld
       );
 
-      pendingAiUpdate.current = { actionDescription, updatedPlayer, updatedEnemy };
+      pendingAiUpdate.current = { actionDescription, updatedPlayer, updatedEnemy, boardEffect };
 
       if (recommendedMove && enemyStatus?.type !== 'Congelado') {
         // Enviar coordenadas del swap a GameBoard para que lo anime en el tablero
@@ -1145,7 +1779,7 @@ export default function App() {
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [turn, gameState, grid]);
+  }, [turn, gameState]);
 
   // --- ANIMACIÓN DE VICTORIA (debe estar antes que handlePlayCard) ---
   const triggerVictoryAnimation = useCallback(() => {
@@ -1236,9 +1870,9 @@ export default function App() {
     let passiveShield = 0;
     let passiveHeal = 0;
 
-    if (gained.red > 0) passiveDamage += gained.red * 2;
-    if (gained.blue > 0) passiveShield += gained.blue * 3;
-    if (gained.green > 0) passiveHeal += gained.green * 2;
+    if (gained.red > 0) passiveDamage += gained.red * 4;
+    if (gained.blue > 0) passiveShield += gained.blue * 5;
+    if (gained.green > 0) passiveHeal += gained.green * 4;
 
     if (passiveDamage > 0) {
       setEnemy(prev => {
@@ -1347,9 +1981,17 @@ export default function App() {
         triggerFloatingDamage(true, `+${card.effectValue}`, 'Defensa');
       } else {
         const totalDamageDone = (oldEnemyHp + oldEnemyShield) - (newEnemyState.hp + (newEnemyState.shield || 0));
+        const unblockedDamage = oldEnemyHp - newEnemyState.hp;
+
         if (totalDamageDone > 0) {
           triggerShake(false);
           triggerFloatingDamage(false, `-${totalDamageDone}`, card.type);
+        }
+
+        // Reliquia Mago: Vampirismo (10% curación del daño a la vida del enemigo)
+        if (unblockedDamage > 0 && relics.includes('r_mage')) {
+          const healAmount = Math.max(1, Math.floor(unblockedDamage * 0.1));
+          newPlayerState.hp = Math.min(newPlayerState.maxHp, newPlayerState.hp + healAmount);
         }
       }
 
@@ -1368,6 +2010,33 @@ export default function App() {
     }
   }, [turn, player, enemy, actionPoints, triggerVictoryAnimation]);
 
+  // --- LÓGICA: USAR POCIÓN EN COMBATE ---
+  const handleUsePotion = useCallback((potionId, index) => {
+    if (turn !== 'player') return;
+    const potion = POTIONS_POOL[potionId];
+    if (!potion) return;
+
+    if (potion.type === 'heal') {
+      setPlayer(prev => ({ ...prev, hp: Math.min(prev.maxHp, prev.hp + 50) }));
+      triggerFloatingDamage(true, '+50', 'Defensa');
+    } else if (potion.type === 'shield') {
+      setPlayer(prev => ({ ...prev, shield: prev.shield + 30 }));
+      triggerFloatingDamage(true, '+30', 'Defensa');
+    } else if (potion.type === 'energy') {
+      setActionPoints(prev => prev + 1);
+      triggerFloatingDamage(true, '+1 PA', 'Defensa');
+    }
+
+    setCombatLog(`🧪 Usaste ${potion.name}.`);
+    playSfx('victory');
+
+    setPotions(prev => {
+      const copy = [...prev];
+      copy.splice(index, 1);
+      return copy;
+    });
+  }, [turn, setPlayer, setActionPoints]);
+
   const handleEndTurn = useCallback(() => {
     if (turn !== 'player' || enemy.hp <= 0 || player.hp <= 0) return;
     setActionPoints(0);
@@ -1376,33 +2045,305 @@ export default function App() {
   }, [turn, player, enemy]);
 
   const handleClaimVictory = useCallback((action) => {
-    const newGold = 150;
-    setGold(prev => prev + newGold);
-    const nextIdx = currentWorldIndex + 1;
-    if (currentWorld.id === maxUnlockedWorld && maxUnlockedWorld < WORLDS.length) {
-      setMaxUnlockedWorld(prev => prev + 1);
+    let newGold = 150;
+    if (relics.includes('r5')) {
+      newGold = Math.floor(newGold * 1.2); // Moneda de la Suerte
     }
+    setGold(prev => prev + newGold);
+
+    // Reliquias de Curación al ganar
+    let healAmount = 0;
+    if (relics.includes('r_paladin')) healAmount += 5;
+    if (relics.includes('r4')) healAmount += 15;
+    
+    if (healAmount > 0) {
+      setPlayer(prev => ({ ...prev, hp: Math.min(prev.maxHp, prev.hp + healAmount) }));
+    }
+
+    setCompletedNodes(prev => [...prev, currentNodeId]);
+
+    // Check if it was a boss node
+    let current;
+    actMap.forEach(f => f.forEach(n => { if (n.id === currentNodeId) current = n; }));
+    
+    if (current && current.type === 'boss') {
+      if (currentWorldIndex + 1 === maxUnlockedWorld) {
+        if (maxUnlockedWorld < WORLDS.length) {
+          const nextWorldId = maxUnlockedWorld + 1;
+          const newDeckInfo = WORLD_DECKS[nextWorldId];
+          
+          if (newDeckInfo) {
+            setCollection(prev => {
+              const copy = [...prev];
+              newDeckInfo.playerDeck.forEach(c => {
+                if (!copy.includes(c)) copy.push(c);
+              });
+              return copy;
+            });
+            
+            setPlayerDecks(prev => {
+              const newId = prev.length > 0 ? Math.max(...prev.map(d => d.id)) + 1 : 1;
+              return [...prev, { id: newId, name: newDeckInfo.name, cards: [...newDeckInfo.playerDeck] }];
+            });
+            
+            // Set active deck to the newly added one
+            setActiveDeckIndex(playerDecks.length);
+            
+            setTimeout(() => {
+              alert(`¡Has avanzado al Mundo ${nextWorldId}!\nHas desbloqueado el [${newDeckInfo.name}] con nuevas cartas para enfrentar mayores peligros. ¡Se ha equipado automáticamente!`);
+            }, 800);
+          }
+
+          setMaxUnlockedWorld(prev => prev + 1);
+          setActMap([]); // Will trigger regeneration for next act
+          setCurrentNodeId(null);
+          setCompletedNodes([]);
+        } else {
+          setMaxUnlockedWorld(prev => prev + 1);
+          setActMap([]); 
+          setCurrentNodeId(null);
+          setCompletedNodes([]);
+          setTimeout(() => {
+            alert(`¡Has avanzado al Mundo ${maxUnlockedWorld + 1} (Ascensión)!\nLos enemigos ahora son mucho más fuertes y letales.`);
+          }, 800);
+        }
+      } else {
+        // Just farming an old world
+        setActMap([]); 
+        setCurrentNodeId(null);
+        setCompletedNodes([]);
+        setTimeout(() => {
+          alert(`¡Has completado este mundo de nuevo! Excelente para conseguir oro extra.`);
+        }, 800);
+      }
+    }
+
     setShowVictoryModal(false);
     setVictoryPhase('idle');
+    changeGameState('level_selection');
+  }, [currentNodeId, actMap, maxUnlockedWorld, playerDecks.length]);
 
-    if (action === 'next' && nextIdx < WORLDS.length) {
-      // Ir directo al siguiente mundo con mazo correspondiente
-      const nextWorldDecks = WORLD_DECKS[WORLDS[nextIdx].id];
-      if (nextWorldDecks) setActiveDeck(nextWorldDecks.playerDeck);
-      setTimeout(() => handleSelectWorld(nextIdx, true), 100);
-    } else if (action === 'shop') {
-      changeGameState('shop');
+  const handleNodeSelect = (node) => {
+    // Check if playable
+    let playable = false;
+    if (!currentNodeId) {
+      if (node.id.startsWith('f0_')) playable = true;
     } else {
-      changeGameState('level_selection');
+      let current;
+      actMap.forEach(f => f.forEach(n => { if (n.id === currentNodeId) current = n; }));
+      if (current && current.next.includes(node.id)) playable = true;
     }
-  }, [currentWorldIndex, currentWorld, maxUnlockedWorld]);
+
+    if (!playable && !completedNodes.includes(node.id)) {
+      if (node.id === currentNodeId) {
+        // Permitir volver a entrar al nodo si morimos y decidimos volver al mapa
+        playable = true;
+      } else {
+        alert('Ruta bloqueada. Debes avanzar desde tu nodo actual.');
+        return;
+      }
+    }
+
+    if (completedNodes.includes(node.id)) {
+      if (['combat', 'elite', 'boss'].includes(node.type)) {
+        // Permitir farmear nodos pasados
+      } else {
+        return; // Campfires, events y tiendas no se pueden farmear
+      }
+    }
+
+    // Set as current and open view depending on type
+    setCurrentNodeId(node.id);
+    
+    if (node.type === 'combat' || node.type === 'elite' || node.type === 'boss') {
+      // Configurar enemigo
+      const actIdx = currentWorldIndex;
+      const actWorld = WORLDS[actIdx % WORLDS.length];
+      
+      let enemyName = node.type === 'boss' ? actWorld.enemyName : (node.type === 'elite' ? 'Élite Guardián' : 'Esbirro');
+      if (actIdx >= WORLDS.length) {
+        enemyName = `[Mítico] ${enemyName}`;
+      }
+
+      // Escalado infinito: 20% más por cada mundo superado
+      const multiplier = 1 + (actIdx * 0.2);
+      
+      let hp = node.type === 'boss' ? actWorld.enemyHp : (node.type === 'elite' ? Math.floor(actWorld.enemyHp * 0.8) : Math.floor(actWorld.enemyHp * 0.5));
+      hp = Math.floor(hp * multiplier);
+      
+      // Select the current world index so backgrounds/colors apply
+      setCurrentWorldIndex(actIdx % WORLDS.length);
+      setEnemy({ name: enemyName, hp, maxHp: hp, shield: 0, energy: 0, type: node.type });
+      
+      // Retrieve hero base stats
+      let baseHp = 100;
+      let baseShield = 20;
+      if (selectedClassId) {
+        const hClass = HERO_CLASSES.find(h => h.id === selectedClassId);
+        if (hClass) {
+          baseHp = hClass.startHp;
+          baseShield = hClass.startShield;
+        }
+      }
+
+      let startHp = baseHp;
+      let startMaxHp = baseHp;
+      let startShield = baseShield;
+      let startPA = 3;
+
+      if (relics.includes('r1')) { startHp += 20; startMaxHp += 20; }
+      if (relics.includes('r2')) { startShield += 15; }
+      if (relics.includes('r3') || relics.includes('r_assassin')) { startPA += 1; }
+      if (relics.includes('r_paladin')) { startShield += 10; }
+
+      // Start combat setup (like handleSelectWorld does)
+      setPlayer({ hp: startHp, maxHp: startMaxHp, shield: startShield });
+      setActionPoints(startPA);
+      setTurn('player');
+      setGrid([]);
+      
+      const deckCards = activeDeck.map(id => getUpgradedCard(id)).filter(Boolean).map(c => ({
+        ...c,
+        charge: 0,
+        totalCost: Object.values(c.manaCost || {}).reduce((sum, v) => sum + v, 0) || 5
+      }));
+      setHand(deckCards);
+      
+      setCombatLog(`¡Te encuentras con un ${enemyName}!`);
+      
+      changeGameState('combat');
+    } else if (node.type === 'shop') {
+      changeGameState('shop');
+    } else if (node.type === 'event') {
+      const randomEvent = EVENTS_POOL[Math.floor(Math.random() * EVENTS_POOL.length)];
+      setCurrentEventId(randomEvent.id);
+      changeGameState('event');
+    } else if (node.type === 'campfire') {
+      setIsForging(false);
+      changeGameState('campfire');
+    }
+  };
 
   const handleRetryCampaign = () => {
+    if (currentNodeId) {
+      let current;
+      actMap.forEach(f => f.forEach(n => { if (n.id === currentNodeId) current = n; }));
+      if (current) {
+        setShowVictoryModal(false);
+        handleNodeSelect(current);
+        return;
+      }
+    }
     handleSelectWorld(currentWorldIndex);
   };
 
   const heroFloating = playerDamageVal ? { value: playerDamageVal.value, type: playerDamageVal.type, animY: playerPopupY, animOpacity: playerPopupOpacity } : null;
   const enemyFloating = enemyDamageVal ? { value: enemyDamageVal.value, type: enemyDamageVal.type, animY: enemyPopupY, animOpacity: enemyPopupOpacity } : null;
+
+  const getHeaderTitle = (tab) => {
+    if (tab === 'worlds_overview') return 'MULTIVERSO';
+    if (tab === 'level_selection') return 'EL REINO';
+    if (tab === 'shop') return 'TIENDA MÍSTICA';
+    if (tab === 'deck_management') return 'TUS MAZOS';
+    return 'REALM OF ELEMENTS';
+  };
+
+  const [showInventory, setShowInventory] = useState(false);
+
+  const renderGlobalHeader = (activeTab) => {
+    const heroInfo = selectedClassId ? HERO_CLASSES.find(h => h.id === selectedClassId) : null;
+    const currentEmoji = heroInfo ? heroInfo.emoji : '🧙‍♂️';
+    const currentName = heroInfo ? heroInfo.name.split(' ')[0].toUpperCase() : 'HÉROE';
+
+    return (
+      <View style={styles.globalHeaderContainer}>
+        <InventoryModal 
+          visible={showInventory} 
+          onClose={() => setShowInventory(false)} 
+          relics={relics} 
+          collection={collection} 
+        />
+        <View style={styles.globalHeaderInner}>
+          <View style={styles.headerTopRow}>
+            {/* Perfil del Jugador */}
+            <View style={styles.playerProfileCard}>
+              <View style={styles.playerAvatarCircle}>
+                <Text style={styles.playerAvatarEmoji}>{currentEmoji}</Text>
+              </View>
+              <View style={styles.playerInfoBox}>
+                <Text style={styles.playerName}>{currentName}</Text>
+                <View style={styles.xpRow}>
+                  <Text style={styles.playerLevelLabel}>LVL {level}</Text>
+                  <View style={styles.xpBarTrack}>
+                    <View style={[styles.xpBarFill, { width: `${Math.min(100, (xp / (level * 100)) * 100)}%` }]} />
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Economía y Ajustes */}
+            <View style={styles.headerTopRight}>
+              <TouchableOpacity onPress={() => setShowInventory(true)} style={[styles.settingsBtn, { marginRight: 4, backgroundColor: '#8b5cf6' }]}>
+                <Text style={styles.settingsBtnText}>🎒</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setHasSeenTutorial(false)} style={[styles.settingsBtn, { marginRight: 4, backgroundColor: '#3b82f6' }]}>
+                <Text style={styles.settingsBtnText}>ℹ️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setSfxEnabled(p => !p); playSfx('match'); }} style={[styles.settingsBtn, { marginRight: 4 }]}>
+                <Text style={styles.settingsBtnText}>{sfxEnabled ? '🔊' : '🔇'}</Text>
+              </TouchableOpacity>
+              <View style={styles.goldPill}>
+                <Text style={styles.goldPillIcon}>🪙</Text>
+                <Text style={styles.goldPillText}>{gold}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Título Central en nueva fila para evitar overlap */}
+          <View style={[styles.headerCenterBox, { marginVertical: 12 }]}>
+            <Text style={styles.headerCenterText}>{getHeaderTitle(activeTab)}</Text>
+          </View>
+        </View>
+
+      {/* Navegación Glassmorphism (Pill style) */}
+      <View style={styles.segmentedNavWrapper}>
+        <View style={styles.segmentedNav}>
+          <TouchableOpacity 
+            style={[styles.navSegment, activeTab === 'worlds_overview' && styles.navSegmentActive]} 
+            onPress={() => changeGameState('worlds_overview')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.navSegmentText, activeTab === 'worlds_overview' && styles.navSegmentTextActive]}>🌍 MUNDOS</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.navSegment, activeTab === 'level_selection' && styles.navSegmentActive]} 
+            onPress={() => changeGameState('level_selection')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.navSegmentText, activeTab === 'level_selection' && styles.navSegmentTextActive]}>🗺️ REINO</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.navSegment, activeTab === 'shop' && styles.navSegmentActive]} 
+            onPress={() => changeGameState('shop')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.navSegmentText, activeTab === 'shop' && styles.navSegmentTextActive]}>🛒 TIENDA</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.navSegment, activeTab === 'deck_management' && styles.navSegmentActive]} 
+            onPress={() => changeGameState('deck_management')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.navSegmentText, activeTab === 'deck_management' && styles.navSegmentTextActive]}>🎴 MAZOS</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
 
   // ============================================================
   //  INTERFAZ: PANTALLA DE INTRO ÉPICA
@@ -1443,7 +2384,13 @@ export default function App() {
         {/* Botón de inicio */}
         <Animated.View style={{ opacity: introBtnOpacity, marginTop: 40 }}>
           <TouchableOpacity
-            onPress={() => changeGameState('level_selection')}
+            onPress={() => {
+              if (!currentNodeId) {
+                changeGameState('hero_selection');
+              } else {
+                changeGameState('level_selection');
+              }
+            }}
             style={styles.introStartBtn}
             activeOpacity={0.8}
           >
@@ -1456,106 +2403,377 @@ export default function App() {
   }
 
   // ============================================================
+  //  INTERFAZ: SELECCIÓN DE HÉROE (CLASE)
+  // ============================================================
+  if (gameState === 'hero_selection') {
+    return (
+      <SafeAreaView style={[styles.introRoot, { backgroundColor: '#03000a' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        
+        <Text style={[styles.introLogoTitle, { fontSize: 32, marginBottom: 4, letterSpacing: 4 }]}>ELIGE TU CAMINO</Text>
+        <Text style={[styles.introLogoSubtitle, { fontSize: 12, marginBottom: 30 }]}>El multiverso necesita un campeón</Text>
+
+        <View style={{ flexDirection: 'column', width: '90%', maxWidth: 400, gap: 16 }}>
+          {HERO_CLASSES.map((hero) => (
+            <TouchableOpacity
+              key={hero.id}
+              activeOpacity={0.8}
+              onPress={() => {
+                playSfx('cardPlay');
+                setSelectedClassId(hero.id);
+                // Inicializar stats según héroe
+                setPlayerDecks(prev => {
+                  const newDecks = [...prev];
+                  newDecks[0] = { id: 1, name: `Mazo de ${hero.name}`, cards: [...hero.startDeck] };
+                  return newDecks;
+                });
+                setCollection(Array.from(new Set([...hero.startDeck, 'c4', 'c5', 'c6', 'c10']))); // Base collection
+                setRelics([hero.relic]); // Asignar la reliquia de clase base
+                
+                changeGameState('oracle_blessing');
+              }}
+              style={{
+                backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                borderRadius: 16,
+                borderWidth: 1.5,
+                borderColor: hero.color,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: hero.color,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 15,
+                shadowOpacity: 0.4,
+              }}
+            >
+              <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: hero.color, marginRight: 16 }}>
+                <Text style={{ fontSize: 32 }}>{hero.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontSize: 18, fontFamily: FONT_TITLE, fontWeight: 'bold', marginBottom: 4 }}>{hero.name}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: FONT_UI, marginBottom: 8, lineHeight: 14 }}>{hero.desc}</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 10, fontFamily: FONT_HUD, fontWeight: 'bold' }}>❤️ {hero.startHp}</Text>
+                  <Text style={{ color: '#3b82f6', fontSize: 10, fontFamily: FONT_HUD, fontWeight: 'bold' }}>🛡️ {hero.startShield}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
+  //  INTERFAZ: BENDICIÓN DEL ORÁCULO
+  // ============================================================
+  if (gameState === 'oracle_blessing') {
+    return (
+      <SafeAreaView style={[styles.introRoot, { backgroundColor: '#0f172a' }]}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+        
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, maxWidth: 600, width: '100%', alignSelf: 'center' }}>
+          <Text style={{ fontSize: 80, marginBottom: 20 }}>👁️</Text>
+          <Text style={{ color: '#fbbf24', fontSize: 28, fontWeight: 'bold', fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 10 }}>LA BENDICIÓN DEL ORÁCULO</Text>
+          <Text style={{ color: '#94a3b8', fontSize: 14, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 40, lineHeight: 22 }}>
+            "Viajero... el abismo elemental requiere preparación. Elige un don que te acompañará en esta aventura."
+          </Text>
+
+          <View style={{ width: '100%', gap: 16 }}>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#ef4444', padding: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => {
+                setPlayer(prev => ({ ...prev, maxHp: prev.maxHp + 20, hp: prev.hp + 20 }));
+                playSfx('victory');
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ fontSize: 24, marginRight: 16 }}>❤️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Vitalidad del Titán</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 12 }}>+20 HP Máximo permanentemente.</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#eab308', padding: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => {
+                setGold(prev => prev + 150);
+                playSfx('victory');
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ fontSize: 24, marginRight: 16 }}>🪙</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Bolsa del Mercader</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Inicias con 150 Oro adicional.</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#3b82f6', padding: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => {
+                const availableRelics = Object.keys(RELICS_POOL).filter(id => !relics.includes(id));
+                if (availableRelics.length > 0) {
+                  const randomRelicId = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+                  setRelics(prev => [...prev, randomRelicId]);
+                  
+                  // Aplicar efecto de reliquia instantaneo si es HP
+                  if (randomRelicId === 'r1') {
+                    setPlayer(prev => ({ ...prev, maxHp: prev.maxHp + 20, hp: prev.hp + 20 }));
+                  }
+                } else {
+                  setGold(prev => prev + 200); // Fallback
+                }
+                playSfx('victory');
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ fontSize: 24, marginRight: 16 }}>🔮</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Conocimiento Antiguo</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Obtienes una Reliquia Aleatoria gratis.</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#a855f7', padding: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => {
+                const epicCards = Object.values(CARDS_POOL).filter(c => c.price >= 600 && !collection.includes(c.id));
+                if (epicCards.length > 0) {
+                  const randomEpic = epicCards[Math.floor(Math.random() * epicCards.length)];
+                  setCollection(prev => [...prev, randomEpic.id]);
+                } else {
+                  setGold(prev => prev + 200); // Fallback
+                }
+                playSfx('victory');
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ fontSize: 24, marginRight: 16 }}>🎴</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Poder Despertado</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Obtienes una Carta Épica Aleatoria gratis.</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
+  //  INTERFAZ: MULTIVERSO (MAPA DE CAMPAÑA GENERAL)
+  // ============================================================
+  if (gameState === 'worlds_overview') {
+    return (
+      <SafeAreaView style={styles.selectionRoot}>
+        <Image source={require('./assets/world_map_3d.png')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(5, 5, 10, 0.85)' }]} pointerEvents="none" />
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+        {renderGlobalHeader('worlds_overview')}
+
+        <ScrollView contentContainerStyle={styles.selectionScroll}>
+          <Text style={styles.selectionInstructions}>
+            Explora los reinos del multiverso. Desbloquea nuevos mundos derrotando a los Jefes Supremos.
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
+            {WORLDS.map((world, idx) => {
+              const isUnlocked = world.id <= maxUnlockedWorld;
+              const isCurrent = currentWorldIndex === idx;
+
+              return (
+                <TouchableOpacity
+                  key={`world_${world.id}`}
+                  disabled={!isUnlocked}
+                  onPress={() => {
+                    handleSelectWorld(idx);
+                  }}
+                  activeOpacity={0.8}
+                  style={[
+                    {
+                      width: '48%',
+                      backgroundColor: isUnlocked ? 'rgba(15, 23, 42, 0.7)' : 'rgba(10, 10, 15, 0.9)',
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: isCurrent ? '#fbbf24' : (isUnlocked ? world.boardShadowColor : '#334155'),
+                      padding: 16,
+                      alignItems: 'center',
+                      shadowColor: isUnlocked ? world.boardShadowColor : '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowRadius: isUnlocked ? 12 : 5,
+                      shadowOpacity: isUnlocked ? 0.4 : 0.8,
+                      opacity: isUnlocked ? 1 : 0.6,
+                    },
+                    isCurrent && {
+                      transform: [{ scale: 1.05 }],
+                      shadowOpacity: 0.8,
+                      shadowRadius: 20,
+                    }
+                  ]}
+                >
+                  <Text style={{ fontSize: 36, marginBottom: 8 }}>{isUnlocked ? world.enemyEmoji : '🔒'}</Text>
+                  <Text style={{ color: isUnlocked ? '#fff' : '#64748b', fontSize: 13, fontWeight: '900', fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 4 }}>
+                    {isUnlocked ? world.name : 'Mundo Desconocido'}
+                  </Text>
+                  
+                  {isUnlocked && (
+                    <>
+                      <Text style={{ color: '#f87171', fontSize: 10, fontFamily: FONT_HUD, fontWeight: 'bold', textAlign: 'center' }}>
+                        JEFE: {world.enemyName}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 9, fontFamily: FONT_UI, marginTop: 4 }}>
+                        HP: {world.enemyHp}
+                      </Text>
+                    </>
+                  )}
+
+                  {isCurrent && (
+                    <View style={{ position: 'absolute', top: -8, backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                      <Text style={{ color: '#000', fontSize: 8, fontWeight: 'bold', fontFamily: FONT_HUD }}>ACTUAL</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+        <TutorialModal 
+          visible={isDataLoaded && !hasSeenTutorial && gameState === 'worlds_overview'} 
+          onClose={() => setHasSeenTutorial(true)} 
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
   //  INTERFAZ: SELECCIÓN DE NIVELES (OVERWORLD)
   // ============================================================
   if (gameState === 'level_selection') {
     return (
-      <SafeAreaView style={styles.selectionRoot}>
-        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
-        <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-        <View style={styles.selectionHeader}>
-          <View>
-            <Text style={styles.selectionHeaderTitle}>✨ CAMPAÑA ELEMENTAL ✨</Text>
-            <Text style={styles.xpText}>NIVEL {level} • XP {xp}/{level * 100}</Text>
-          </View>
-          <View style={styles.headerRightGroup}>
-            <TouchableOpacity
-              onPress={() => {
-                setSfxEnabled(prev => !prev);
-                playSfx('match');
-              }}
-              style={styles.soundToggleBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.soundToggleText}>{sfxEnabled ? '🔊' : '🔇'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.goldBadgeText}>🪙 {gold} Oro</Text>
-          </View>
-        </View>
+      <View style={{ flex: 1, backgroundColor: '#0a0a0f' }}>
+        <Image source={require('./assets/world_map_3d.png')} style={[StyleSheet.absoluteFillObject, { transform: [{ scale: 1.25 }] }]} resizeMode="cover" />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} pointerEvents="none" />
+        
+        <SafeAreaView style={{ flex: 1 }}>
+          <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+          {renderGlobalHeader('level_selection')}
 
-        <View style={styles.navBar}>
-          <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
-            <Text style={styles.navBtnText}>🗺️ Reino</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => changeGameState('shop')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🛒 Tienda</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => changeGameState('deck_management')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🎴 Mazo ({activeDeck.length}/3)</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.selectionScroll}>
-          <Text style={styles.selectionInstructions}>
-            Desafía a los jefes elementales. Mover gemas y jugar cartas consume 1 PA.
+          <ScrollView contentContainerStyle={styles.selectionScroll}>
+            <Text style={styles.selectionInstructions}>
+            Elige tu camino. Acto {currentWorldIndex + 1} - {currentWorld.name}
           </Text>
 
           <View style={styles.mapPathContainer}>
-            {/* Línea conectora del camino RPG */}
-            <View style={styles.mapConnectorLine} />
+            {/* Línea conectora eliminada para dar paso a un mapa más limpio */}
 
-            {WORLDS.map((w, idx) => {
-              const isLocked = w.id > maxUnlockedWorld;
-              const isCurrent = w.id === maxUnlockedWorld;
-              const borderThemeColor = borderColorsByWorld[w.id] || '#444';
-              
-              // Alineación alternada para simular un sendero curvo de mapa de rol
-              const alignSelf = idx % 2 === 0 ? 'flex-start' : 'flex-end';
-              const sideMargin = idx % 2 === 0 ? { marginLeft: 10 } : { marginRight: 10 };
-
+            {[...actMap].reverse().map((floorNodes, reverseFloorIdx) => {
+              const floorIdx = actMap.length - 1 - reverseFloorIdx;
               return (
-                <View key={w.id} style={[styles.mapNodeWrapper, { alignSelf }, sideMargin]}>
-                  {/* Punto indicador de la ruta */}
-                  <View style={[styles.mapNodeDot, { backgroundColor: isLocked ? '#1f2937' : borderThemeColor }]} />
-                  
-                  <TouchableOpacity
-                    disabled={isLocked}
-                    onPress={() => handleSelectWorld(idx)}
-                    activeOpacity={0.85}
-                    style={[
-                      styles.worldCard,
-                      { borderColor: borderThemeColor, shadowColor: borderThemeColor },
-                      isLocked ? styles.worldCardLocked : styles.worldCardUnlocked,
-                      isCurrent ? styles.worldCardCurrent : null,
-                    ]}
-                  >
-                    {w.bgImage && (
-                      <Image source={w.bgImage} style={styles.worldCardBg} resizeMode="cover" />
-                    )}
+                <View key={`floor_${floorIdx}`} style={{ flexDirection: 'row', justifyContent: 'center', gap: 30, marginBottom: 50 }}>
+                  {floorNodes.map((node) => {
+                    const isCompleted = completedNodes.includes(node.id);
+                    const isCurrent = currentNodeId === node.id;
                     
-                    {/* Badge del estado del mundo */}
-                    <View style={[styles.worldStatusBadge, { backgroundColor: isLocked ? 'rgba(0,0,0,0.8)' : isCurrent ? borderThemeColor : 'rgba(16,185,129,0.8)' }]}>
-                      <Text style={styles.worldStatusBadgeText}>
-                        {isLocked ? '🔒 BLOQUEADO' : isCurrent ? '⚔️ ACTUAL' : '✓ COMPLETADO'}
-                      </Text>
-                    </View>
+                    let isPlayable = false;
+                    if (!currentNodeId && node.id.startsWith('f0_')) isPlayable = true;
+                    if (currentNodeId) {
+                      let current;
+                      actMap.forEach(f => f.forEach(n => { if (n.id === currentNodeId) current = n; }));
+                      if (current && current.next.includes(node.id)) isPlayable = true;
+                    }
+                    
+                    const isLocked = !isPlayable && !isCompleted && !isCurrent;
+                    
+                    const getEmoji = (t) => ({ boss: '👿', elite: '💀', combat: '⚔️', shop: '🛒', campfire: '🏕️', start: '🏁', event: '❓' }[t] || '❓');
+                    const getColor = (t) => ({ boss: '#ef4444', elite: '#f97316', combat: '#3b82f6', shop: '#eab308', campfire: '#10b981', start: '#8b5cf6', event: '#d946ef' }[t] || '#fff');
+                    
+                    const renderMapLines = () => {
+                      const nextFloor = actMap[floorIdx + 1];
+                      if (!nextFloor) return null;
+                      const xA = (floorNodes.indexOf(node) - (floorNodes.length - 1) / 2) * 90;
 
-                    <View style={styles.worldCardHeader}>
-                      <Text style={styles.worldCardEmoji}>{w.enemyEmoji}</Text>
-                      <Text style={styles.worldCardName}>{w.name}</Text>
-                    </View>
-                    <View style={styles.worldCardDivider} />
-                    <View style={styles.worldCardBody}>
-                      <Text style={styles.worldCardJefe}>Jefe: {w.enemyName}</Text>
-                      <Text style={styles.worldCardHp}>Vida: ❤️ {w.enemyHp} HP</Text>
-                    </View>
-                  </TouchableOpacity>
+                      return node.next.map(nextId => {
+                        const nextIndex = nextFloor.findIndex(n => n.id === nextId);
+                        if (nextIndex === -1) return null;
+                        
+                        const xB = (nextIndex - (nextFloor.length - 1) / 2) * 90;
+                        const dx = xB - xA;
+                        const dy = -131; // Distancia estimada entre centros de nodos
+                        
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        
+                        const isPathActive = isCompleted && (completedNodes.includes(nextId) || currentNodeId === nextId);
+
+                        return (
+                          <View 
+                            key={`line_${node.id}_${nextId}`}
+                            style={{
+                              position: 'absolute',
+                              width: length,
+                              height: 3,
+                              backgroundColor: isPathActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.15)',
+                              top: 30 + dy / 2 - 1.5,
+                              left: dx / 2 - length / 2,
+                              transform: [{ rotate: `${angle}deg` }],
+                              zIndex: -1,
+                              shadowColor: isPathActive ? '#3b82f6' : 'transparent',
+                              shadowRadius: 5,
+                              shadowOpacity: 0.8,
+                              elevation: isPathActive ? 5 : 0
+                            }} 
+                          />
+                        );
+                      });
+                    };
+
+                    return (
+                      <View key={node.id} style={{ alignItems: 'center', zIndex: 10 }}>
+                        <View style={{ position: 'absolute', top: 0, left: '50%', width: 0, height: 0, overflow: 'visible', zIndex: -1 }}>
+                          {renderMapLines()}
+                        </View>
+                        <TouchableOpacity
+                          disabled={isLocked && !isCompleted && !isCurrent}
+                          onPress={() => handleNodeSelect(node)}
+                          activeOpacity={0.8}
+                          style={[
+                            styles.mapNodeCircle,
+                            { borderColor: isCompleted ? '#22c55e' : getColor(node.type), backgroundColor: 'rgba(20,20,30,0.9)' },
+                            isCurrent && styles.mapNodeCurrent,
+                            isLocked && { opacity: 0.4, borderColor: '#334155', backgroundColor: '#000' }
+                          ]}
+                        >
+                          <Text style={styles.mapNodeEmoji}>
+                            {isCompleted ? '✓' : getEmoji(node.type)}
+                          </Text>
+                          {isLocked && (
+                            <View style={{ position: 'absolute', right: -5, bottom: -5, backgroundColor: '#000', borderRadius: 10, padding: 2 }}>
+                              <Text style={{ fontSize: 10 }}>🔒</Text>
+                            </View>
+                          )}
+                          {isCurrent && <View style={styles.mapNodePing} />}
+                        </TouchableOpacity>
+                        
+                        {/* Pequeña etiqueta de texto para saber qué es exactamente si no está bloqueado (o si el usuario quiere leerlo igual) */}
+                        <View style={{ backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, borderRadius: 4, marginTop: 6, borderWidth: 1, borderColor: isLocked ? '#334155' : getColor(node.type) }}>
+                           <Text style={{ color: isLocked ? '#64748b' : '#fff', fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold' }}>{node.type.toUpperCase()}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
               );
             })}
           </View>
         </ScrollView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -1567,50 +2785,54 @@ export default function App() {
       <SafeAreaView style={styles.selectionRoot}>
         <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-        <View style={styles.selectionHeader}>
-          <Text style={styles.selectionHeaderTitle}>🛒 TIENDA MÍSTICA</Text>
-          <View style={styles.headerRightGroup}>
-            <TouchableOpacity
-              onPress={() => {
-                setSfxEnabled(prev => !prev);
-                playSfx('match');
-              }}
-              style={styles.soundToggleBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.soundToggleText}>{sfxEnabled ? '🔊' : '🔇'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.goldBadgeText}>🪙 {gold} Oro</Text>
-          </View>
-        </View>
-
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => changeGameState('level_selection')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🗺️ Reino</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
-            <Text style={styles.navBtnText}>🛒 Tienda</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => changeGameState('deck_management')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🎴 Mazo ({activeDeck.length}/3)</Text>
-          </TouchableOpacity>
-        </View>
+        {renderGlobalHeader('shop')}
 
         <ScrollView contentContainerStyle={styles.shopScroll}>
           <Text style={styles.selectionInstructions}>Adquiere hechizos y guerreros para potenciar tu mazo de combate.</Text>
+
+          {currentNodeId && currentNodeId.includes('f') && (
+            <TouchableOpacity 
+              style={{ backgroundColor: '#22c55e', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 }}
+              onPress={() => {
+                setCompletedNodes(prev => [...prev, currentNodeId]);
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: FONT_HUD }}>🗺️ VOLVER AL MAPA</Text>
+            </TouchableOpacity>
+          )}
           
           <View style={styles.shopGrid}>
-            {Object.values(CARDS_POOL).map(card => {
-              if (!card.price) return null;
-              const isOwned = collection.includes(card.id);
-              const rarity = getCardRarity(card.id);
+            
+            {/* Banner de Servicio de Purga (Arriba del todo) */}
+            <TouchableOpacity 
+              style={{ width: '100%', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              onPress={() => setIsRemovingCard(true)}
+            >
+              <View style={{ flex: 1, paddingRight: 10 }}>
+                <Text style={{ color: '#fca5a5', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 4 }}>🔥 Purga del Mazo</Text>
+                <Text style={{ color: '#fecaca', fontSize: 11, fontFamily: FONT_UI }}>Elimina permanentemente una carta de tu mazo para mejorarlo.</Text>
+              </View>
+              <View style={{ backgroundColor: '#dc2626', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>100 🪙</Text>
+              </View>
+            </TouchableOpacity>
+            {[...Object.values(CARDS_POOL), ...Object.values(RELICS_POOL), ...Object.values(POTIONS_POOL)].map(item => {
+              if (!item.price) return null;
+              
+              const isCard = item.id.startsWith('c');
+              const isRelic = item.id.startsWith('r');
+              const isPotion = item.id.startsWith('p');
 
-              const isOffer = card.id === specialOfferId;
+              const isOwned = (isCard && collection.includes(item.id)) || (isRelic && relics.includes(item.id));
+              const rarity = isCard ? getCardRarity(item.id) : (isRelic ? 'Mítica' : 'Común');
+
+              const isOffer = item.id === specialOfferId;
               const discountMultiplier = isOffer ? (1 - specialOfferDiscount) : 1;
-              const finalPrice = Math.floor(card.price * discountMultiplier);
+              const finalPrice = Math.floor(item.price * discountMultiplier);
 
               return (
-                <View key={card.id} style={[styles.shopItemCard, { borderColor: getRarityColor(rarity) }]}>
+                <View key={item.id} style={[styles.shopItemCard, { borderColor: getRarityColor(rarity) }]}>
                   {isOffer && !isOwned && (
                     <View style={styles.offerBadge}>
                       <Text style={styles.offerBadgeText}>⚡ OFERTA -{Math.round(specialOfferDiscount * 100)}% ⚡</Text>
@@ -1618,28 +2840,33 @@ export default function App() {
                   )}
 
                   <View style={styles.shopItemHeader}>
-                    <Text style={styles.shopItemEmoji}>{getCardEmoji(card.type)}</Text>
-                    <Text style={styles.shopItemName}>{card.name}</Text>
+                    <Text style={styles.shopItemEmoji}>{isCard ? getCardEmoji(item.type) : item.emoji}</Text>
+                    <Text style={styles.shopItemName}>{item.name}</Text>
                   </View>
-                  {card.image && (
-                    <Image source={typeof card.image === 'number' ? card.image : { uri: card.image }} style={styles.shopCardImage} resizeMode="cover" />
+                  {item.image && (
+                    <Image source={typeof item.image === 'number' ? item.image : { uri: item.image }} style={styles.shopCardImage} resizeMode="cover" />
                   )}
-                  <Text style={styles.shopItemDesc}>{card.description}</Text>
-                  <Text style={[styles.shopItemType, { color: getCardTypeColor(card.type) }]}>
-                    {card.type.toUpperCase()} (VAL: {card.effectValue})
-                  </Text>
+                  <Text style={styles.shopItemDesc} numberOfLines={4}>{item.description}</Text>
+                  
+                  {isCard && (
+                    <Text style={[styles.shopItemType, { color: getCardTypeColor(item.type) }]} numberOfLines={1}>
+                      {item.type.toUpperCase()} (VAL: {item.effectValue})
+                    </Text>
+                  )}
+                  {isRelic && <Text style={[styles.shopItemType, { color: '#f59e0b' }]} numberOfLines={1}>RELIQUIA PASIVA</Text>}
+                  {isPotion && <Text style={[styles.shopItemType, { color: '#0ea5e9' }]} numberOfLines={1}>POCIÓN ({potions.filter(p => p === item.id).length}/3)</Text>}
 
-                  {isOwned ? (
+                  {isOwned && !isPotion ? (
                     <View style={styles.shopBoughtBadge}>
                       <Text style={styles.shopBoughtText}>✓ ADQUIRIDA</Text>
                     </View>
                   ) : (
                     <TouchableOpacity
-                      onPress={() => handleBuyCard(card.id, finalPrice)}
+                      onPress={() => handleBuyItem(item, finalPrice)}
                       style={styles.shopBuyBtn}
                     >
                       <Text style={styles.shopBuyBtnText}>
-                        🪙 COMPRAR por {finalPrice} {isOffer && <Text style={{ textDecorationLine: 'line-through', fontSize: 7, opacity: 0.7 }}>({card.price})</Text>}
+                        🪙 COMPRAR por {finalPrice} {isOffer && <Text style={{ textDecorationLine: 'line-through', fontSize: 7, opacity: 0.7 }}>({item.price})</Text>}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1648,6 +2875,230 @@ export default function App() {
             })}
           </View>
         </ScrollView>
+
+        {/* Modal de Borrado de Carta */}
+        <Modal
+          visible={isRemovingCard}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsRemovingCard(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.renameModalCard, { width: '90%', maxHeight: '80%' }]}>
+              <Text style={styles.renameModalTitle}>🔥 Servicio de Purga 🔥</Text>
+              <Text style={styles.renameModalSubtitle}>Selecciona una carta de tu colección para eliminarla permanentemente. (Costo: 100 🪙)</Text>
+              
+              <ScrollView style={{ width: '100%', marginVertical: 10, maxHeight: 300 }}>
+                {collection.map(id => {
+                  const card = getUpgradedCard(id);
+                  if (!card) return null;
+                  
+                  return (
+                    <TouchableOpacity 
+                      key={`remove_${id}`}
+                      style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', padding: 10, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: getRarityColor(getCardRarity(id)) }}
+                      onPress={() => {
+                        if (gold < 100) {
+                          alert('No tienes oro suficiente (100 🪙)');
+                          return;
+                        }
+                        // Prevenir borrar si solo queda 1 carta (no deberia pasar pero por si acaso)
+                        if (collection.length <= 3) {
+                          alert('¡Tu mazo es demasiado pequeño para purgar más cartas!');
+                          return;
+                        }
+
+                        // Cobrar oro y remover carta
+                        setGold(prev => prev - 100);
+                        setCollection(prev => prev.filter(c => c !== id));
+                        // Tambien removerla de los mazos activos si esta ahi
+                        setPlayerDecks(prev => prev.map(deck => ({
+                          ...deck,
+                          cards: deck.cards.filter(c => c !== id)
+                        })));
+                        
+                        setIsRemovingCard(false);
+                        playSfx('match');
+                        alert('Carta purgada exitosamente.');
+                      }}
+                    >
+                      <Text style={{ fontSize: 24, marginRight: 10 }}>{getCardEmoji(card.type)}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>{card.name}</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10 }}>{card.description}</Text>
+                      </View>
+                      <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 12 }}>X BORRAR</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <TouchableOpacity
+                onPress={() => setIsRemovingCard(false)}
+                style={[styles.modalBtn, styles.modalBtnCancel, { width: '100%', marginTop: 10 }]}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
+  //  INTERFAZ: HOGUERA (CAMPFIRE)
+  // ============================================================
+  if (gameState === 'campfire') {
+    return (
+      <SafeAreaView style={styles.selectionRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
+        {renderGlobalHeader('level_selection')}
+
+        {isForging ? (
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+             <Text style={{ color: '#fbbf24', fontSize: 24, fontWeight: 'bold', fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 10 }}>LA FORJA ELEMENTAL</Text>
+             <Text style={{ color: '#94a3b8', fontSize: 12, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 20 }}>Selecciona una carta de tu colección para mejorar su daño o defensa (+3 poder). Consumirá la hoguera.</Text>
+             
+             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
+                {collection.map(id => {
+                  const card = getUpgradedCard(id);
+                  if (!card) return null;
+                  
+                  return (
+                    <TouchableOpacity 
+                      key={id}
+                      style={[styles.shopItemCard, { borderColor: getRarityColor(getCardRarity(id)), alignItems: 'center' }]}
+                      onPress={() => {
+                        setCardUpgrades(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+                        setCompletedNodes(prev => [...prev, currentNodeId]);
+                        playSfx('victory');
+                        changeGameState('level_selection');
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={{ fontSize: 24, marginBottom: 5 }}>{getCardEmoji(card.type)}</Text>
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold', fontFamily: FONT_TITLE, textAlign: 'center' }}>{card.name}</Text>
+                      <Text style={{ color: getCardTypeColor(card.type), fontSize: 9, fontFamily: FONT_HUD, marginTop: 4 }}>Poder: {card.effectValue} ➔ <Text style={{color: '#22c55e'}}>{card.effectValue + 3}</Text></Text>
+                      
+                      <View style={{ backgroundColor: '#22c55e', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, marginTop: 10 }}>
+                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>⚒️ MEJORAR</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+             </View>
+             
+             <TouchableOpacity 
+                style={{ backgroundColor: '#475569', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 20 }}
+                onPress={() => setIsForging(false)}
+             >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>VOLVER</Text>
+             </TouchableOpacity>
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <Text style={{ fontSize: 80, marginBottom: 20 }}>🏕️</Text>
+            <Text style={{ color: '#fbbf24', fontSize: 24, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10 }}>Hoguera de Descanso</Text>
+            <Text style={{ color: '#94a3b8', fontSize: 12, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 40 }}>
+              El calor de las llamas renueva tus fuerzas. Elige una acción.
+            </Text>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#10b981', width: '100%', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 20 }}
+              onPress={() => {
+                setPlayer(prev => ({ ...prev, hp: prev.maxHp }));
+                setCompletedNodes(prev => [...prev, currentNodeId]);
+                changeGameState('level_selection');
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 14 }}>❤️ DESCANSAR (Curar HP)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#8b5cf6', width: '100%', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 20 }}
+              onPress={() => setIsForging(true)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 14 }}>⚒️ FORJAR (Mejorar Carta)</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
+  //  INTERFAZ: EVENTO (MISTERIO)
+  // ============================================================
+  if (gameState === 'event') {
+    const activeEvent = EVENTS_POOL.find(e => e.id === currentEventId);
+    
+    return (
+      <SafeAreaView style={styles.selectionRoot}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
+        {renderGlobalHeader('level_selection')}
+
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 80, marginBottom: 20 }}>❓</Text>
+          <Text style={{ color: '#d946ef', fontSize: 24, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10, textAlign: 'center' }}>{activeEvent?.title || 'Misterio'}</Text>
+          <Text style={{ color: '#e2e8f0', fontSize: 14, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 40, paddingHorizontal: 20, lineHeight: 22 }}>
+            {activeEvent?.text || 'Algo extraño sucede...'}
+          </Text>
+
+          {activeEvent?.options.map((opt, index) => {
+            let btnColor = '#3b82f6';
+            if (opt.type === 'danger') btnColor = '#ef4444';
+            if (opt.type === 'buy') btnColor = '#eab308';
+            if (opt.type === 'heal' || opt.type === 'upgrade') btnColor = '#10b981';
+            if (opt.type === 'neutral') btnColor = '#64748b';
+
+            return (
+              <TouchableOpacity 
+                key={`opt_${index}`}
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderColor: btnColor, borderWidth: 2, width: '100%', maxWidth: 350, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 16 }}
+                onPress={() => {
+                  const { effect } = opt;
+                  
+                  if (effect.goldChange) {
+                    if (effect.goldChange < 0 && gold < Math.abs(effect.goldChange)) {
+                      alert('No tienes suficiente oro.');
+                      return;
+                    }
+                    setGold(prev => prev + effect.goldChange);
+                  }
+                  if (effect.hpChange) {
+                    setPlayer(prev => {
+                      let newHp = prev.hp + effect.hpChange;
+                      if (newHp > prev.maxHp) newHp = prev.maxHp;
+                      if (newHp <= 0) newHp = 1; // Survive with 1 HP
+                      return { ...prev, hp: newHp };
+                    });
+                  }
+                  if (effect.maxHpChange) {
+                    setPlayer(prev => ({ ...prev, maxHp: prev.maxHp + effect.maxHpChange, hp: prev.hp + effect.maxHpChange }));
+                  }
+                  if (effect.getRelic) {
+                    const availableRelics = Object.keys(RELICS_POOL).filter(id => !relics.includes(id) && RELICS_POOL[id].price !== null);
+                    if (availableRelics.length > 0) {
+                      const randomRelicId = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+                      setRelics(prev => [...prev, randomRelicId]);
+                    }
+                  }
+
+                  playSfx(opt.type === 'danger' ? 'enemyHit' : 'victory');
+                  setCompletedNodes(prev => [...prev, currentNodeId]);
+                  changeGameState('level_selection');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 13 }}>{opt.text}</Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
       </SafeAreaView>
     );
   }
@@ -1660,34 +3111,7 @@ export default function App() {
       <SafeAreaView style={styles.selectionRoot}>
         <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-        <View style={styles.selectionHeader}>
-          <Text style={styles.selectionHeaderTitle}>🎴 GESTIÓN DE MAZOS</Text>
-          <View style={styles.headerRightGroup}>
-            <TouchableOpacity
-              onPress={() => {
-                setSfxEnabled(prev => !prev);
-                playSfx('match');
-              }}
-              style={styles.soundToggleBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.soundToggleText}>{sfxEnabled ? '🔊' : '🔇'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.deckCountText}>{activeDeck.length} / 3 EQUIPADAS</Text>
-          </View>
-        </View>
-
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => changeGameState('level_selection')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🗺️ Reino</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => changeGameState('shop')} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>🛒 Tienda</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.navBtn, styles.navBtnActive]}>
-            <Text style={styles.navBtnText}>🎴 Mazo ({activeDeck.length}/3)</Text>
-          </TouchableOpacity>
-        </View>
+        {renderGlobalHeader('deck_management')}
 
         <ScrollView contentContainerStyle={styles.deckScroll}>
           {/* Selector de 5 Mazos */}
@@ -1737,7 +3161,8 @@ export default function App() {
 
           <View style={styles.deckGrid}>
             {collection.map(cardId => {
-              const card = CARDS_POOL[cardId];
+              const card = getUpgradedCard(cardId);
+              if (!card) return null;
               const isEquipped = activeDeck.includes(cardId);
               const rarity = getCardRarity(cardId);
 
@@ -1847,132 +3272,35 @@ export default function App() {
       <Animated.View pointerEvents="none" style={[styles.dangerVignette, { opacity: lowHpPulse }]} />
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-      <ScrollView contentContainerStyle={styles.scroll} bounces={false}>
-        {/* HUD SUPERIOR */}
-        <View style={styles.hudSection}>
-          {/* === VFX CINEMATOGRÁFICO DE ATAQUE === */}
-          {/* Proyectil principal */}
-          <Animated.View style={[styles.spellProjectile, {
-            opacity: spellOpacity,
-            backgroundColor: activeSpellColor,
-            shadowColor: activeSpellColor,
-            transform: [
-              { translateX: spellAnimX },
-              { scale: spellScale }
-            ]
-          }]}>
-            <View style={[styles.spellCore, { backgroundColor: activeSpellColor }]} />
-          </Animated.View>
-
-          {/* Partículas de impacto */}
-          {attackVfx && (
-            <>
-              <Animated.View style={[styles.impactParticle, {
-                backgroundColor: attackVfx.color,
-                shadowColor: attackVfx.color,
-                opacity: particleOpacity,
-                transform: [{ translateX: particle1X }, { translateY: particle1Y }]
-              }]} />
-              <Animated.View style={[styles.impactParticle, styles.impactParticleSm, {
-                backgroundColor: attackVfx.color,
-                shadowColor: attackVfx.color,
-                opacity: particleOpacity,
-                transform: [{ translateX: particle2X }, { translateY: particle2Y }]
-              }]} />
-              <Animated.View style={[styles.impactParticle, styles.impactParticleLg, {
-                backgroundColor: '#ffffff',
-                shadowColor: attackVfx.color,
-                opacity: particleOpacity,
-                transform: [{ translateX: particle3X }, { translateY: particle3Y }]
-              }]} />
-              <Animated.View style={[styles.impactParticle, styles.impactParticleSm, {
-                backgroundColor: attackVfx.color,
-                shadowColor: '#ffffff',
-                opacity: particleOpacity,
-                transform: [{ translateX: particle4X }, { translateY: particle4Y }]
-              }]} />
-              <Animated.View style={[styles.impactParticle, {
-                backgroundColor: '#ffffff',
-                shadowColor: attackVfx.color,
-                opacity: particleOpacity,
-                transform: [{ translateX: particle5X }, { translateY: particle5Y }]
-              }]} />
-              {/* Onda expansiva */}
-              <Animated.View style={[styles.shockwave, {
-                borderColor: attackVfx.color,
-                opacity: shockwaveOpacity,
-                transform: [{ scale: shockwaveAnim.interpolate({ inputRange: [0, 1], outputRange: [0.2, 3] }) }]
-              }]} />
-            </>
-          )}
-
-          <View style={styles.hud3Cols}>
-            {/* Jugador */}
-            <View style={styles.hudColSide}>
-              <AvatarCard
-                name="SR. DRAGÓN"
-                isPlayer={true}
-                hp={player.hp}
-                maxHp={player.maxHp}
-                shield={player.shield}
-                shakeAnim={playerShake}
-                floatingDamage={heroFloating}
-                flashAnim={playerFlash}
-                status={playerStatus}
-              />
-            </View>
-
-            {/* Turno y PA */}
-            <View style={styles.hudColCenter}>
-              <Text style={styles.worldTitle}>✦ {currentWorld.name.toUpperCase()} ✦</Text>
-              {currentWorld.id === 1 && <Text style={styles.worldDescriptor}>🌋 Terreno de Magma (Fuego quema gemas)</Text>}
-              {currentWorld.id === 2 && <Text style={styles.worldDescriptor}>⚡ Tormenta de Rayos (IA busca combos)</Text>}
-              {currentWorld.id === 3 && <Text style={styles.worldDescriptor}>🪨 Cripta de Granito (IA busca defensas)</Text>}
-              {currentWorld.id === 4 && <Text style={styles.worldDescriptor}>🌌 Vacío Cósmico (IA hace daño puro)</Text>}
-              
-              <View style={styles.turnIndicator}>
-                <Text style={[styles.turnText, { color: turn === 'player' ? '#10b981' : '#ef4444' }]}>
-                  {turn === 'player' ? '⚔️ TU TURNO' : '🤖 TURNO RIVAL'}
-                </Text>
-              </View>
-
-              <View style={styles.paContainer}>
-                <Text style={styles.paText}>
-                  ✨ PA: {'⭐'.repeat(Math.max(0, actionPoints))}{'❌'.repeat(Math.max(0, 3 - actionPoints))}
-                </Text>
-              </View>
-
-              <Text style={styles.combatLog} numberOfLines={3}>
-                {combatLog}
-              </Text>
-            </View>
-
-            {/* Jefe */}
-            <View style={styles.hudColSide}>
-              <AvatarCard
-                name={enemy.name}
-                isPlayer={false}
-                hp={enemy.hp}
-                maxHp={enemy.maxHp}
-                shield={enemy.shield}
-                energy={enemy.energy ?? 0}
-                maxEnergy={6}
-                shakeAnim={enemyShake}
-                floatingDamage={enemyFloating}
-                flashAnim={enemyFlash}
-                emojiOverride={currentWorld.enemyEmoji}
-                status={enemyStatus}
-                bossIntent={bossIntent}
-              />
-            </View>
-          </View>
+      <View style={[styles.combatRoot, { flex: 1, justifyContent: 'space-between' }]}>
+        {/* HUD SUPERIOR: JEFE */}
+        <View style={styles.bossHudSection}>
+          <AvatarCard
+            name={enemy.name}
+            isPlayer={false}
+            hp={enemy.hp}
+            maxHp={enemy.maxHp}
+            shield={enemy.shield}
+            energy={enemy.energy ?? 0}
+            maxEnergy={6}
+            shakeAnim={enemyShake}
+            floatingDamage={enemyDamageVal ? {
+              value: enemyDamageVal.amount,
+              animY: enemyPopupY,
+              animOpacity: enemyPopupOpacity,
+              type: enemyDamageVal.type,
+              isCrit: enemyDamageVal.isCrit
+            } : null}
+            flashAnim={enemyFlash}
+            emojiOverride={currentWorld.enemyEmoji}
+            status={enemyStatus}
+            bossIntent={bossIntent}
+            isHorizontal={true}
+          />
         </View>
 
-        {/* ESCENARIO DE COMBATE 3D */}
+        {/* ESCENARIO DE COMBATE 3D (CENTRO) */}
         <View style={styles.boardScene}>
-          {/* Base de Plataforma 3D para efecto de profundidad */}
-          <View style={[styles.boardPlatformBase, { backgroundColor: currentWorld.boardShadowColor, opacity: 0.15 }]} />
-          
           <Animated.View style={[
             styles.boardWrapper, 
             { 
@@ -1981,13 +3309,7 @@ export default function App() {
               borderColor: envPulseAnim.interpolate({
                 inputRange: [0.4, 1],
                 outputRange: ['transparent', currentWorld.boardShadowColor]
-              }),
-              transform: [
-                { perspective: 1000 },
-                { rotateX: '15deg' },
-                { scaleY: 0.94 },
-                { scaleX: 0.96 }
-              ]
+              })
             }
           ]}>
             <GameBoard 
@@ -2025,6 +3347,11 @@ export default function App() {
                 triggerFloatingDamage(true, `-${dmg}`, 'Ataque');
                 setCombatLog(prev => `⚠️ ¡Gema Quemada activada! Sufres ${dmg} de daño.`);
               }}
+              aiMove={currentAiMove}
+              onAiMoveComplete={handleAiMoveComplete}
+              onManaGained={handleManaGained}
+              incomingBoardEffect={incomingBoardEffect}
+              onBoardEffectComplete={() => setIncomingBoardEffect(null)}
             />
           </Animated.View>
 
@@ -2043,90 +3370,155 @@ export default function App() {
               <Text style={styles.comboMsgText}>{comboMsg}</Text>
             </Animated.View>
           )}
+
+          {/* === VFX CINEMATOGRÁFICO DE ATAQUE === */}
+          <Animated.View style={[styles.spellProjectile, {
+            opacity: spellOpacity,
+            backgroundColor: activeSpellColor,
+            shadowColor: activeSpellColor,
+            transform: [{ translateY: spellAnimX }, { scale: spellScale }]
+          }]} pointerEvents="none">
+            <View style={[styles.spellCore, { backgroundColor: activeSpellColor }]} />
+          </Animated.View>
         </View>
 
-        {/* MAZO BOCA ABAJO DEL ENEMIGO */}
-        <View style={styles.enemyDeckSection}>
-          <Text style={styles.enemyDeckLabel}>🤖 {enemy.name} — Mazo</Text>
-          <EnemyDeckDisplay
-            cardCount={WORLD_DECKS[currentWorld.id]?.enemyCards || 4}
-            worldColor={currentWorld.boardShadowColor}
-          />
-        </View>
-
-        {/* COLA DE CASTEO (MANO) */}
-        <View style={styles.handSection}>
-          <View style={styles.handHeader}>
-            <Text style={styles.handTitle}>🎴 CARTAS EQUIPADAS (Mano activa)</Text>
-            <TouchableOpacity onPress={handleEndTurn} style={styles.endTurnBtn} disabled={turn !== 'player'}>
-              <Text style={styles.endTurnText}>PASAR TURNO</Text>
-            </TouchableOpacity>
+        {/* HUD INFERIOR Y CARTAS: JUGADOR */}
+        <View style={styles.playerBottomArea}>
+          
+          <View style={styles.combatInfoRow}>
+            <View style={styles.turnIndicator}>
+              <Text style={[styles.turnText, { color: turn === 'player' ? '#10b981' : '#ef4444' }]}>
+                {turn === 'player' ? '⚔️ TU TURNO' : '🤖 TURNO RIVAL'}
+              </Text>
+            </View>
+            <View style={styles.paContainer}>
+              <Text style={styles.paText}>
+                ✨ PA: {'⭐'.repeat(Math.max(0, actionPoints))}{'❌'.repeat(Math.max(0, 3 - actionPoints))}
+              </Text>
+            </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll}>
-            {hand.map((card, idx) => {
-              const isReady = card.charge >= card.totalCost;
-              const progress = Math.min(100, (card.charge / card.totalCost) * 100);
-              const cardDisabled = actionPoints <= 0 || turn !== 'player';
-              const isSelected = selectedHandIndex === idx;
-              const rarity = getCardRarity(card.id);
-              
-              return (
-                <TouchableOpacity
-                  key={card.id}
-                  activeOpacity={0.8}
-                  disabled={cardDisabled}
-                  style={[
-                    styles.cardContainer,
-                    isReady ? styles.cardReady : null,
-                    cardDisabled ? styles.cardContainerDisabled : null,
-                    isSelected ? styles.cardSelected : null,
-                    { borderColor: getRarityColor(rarity) }
-                  ]}
-                  onPress={() => {
-                    if (isSelected) {
-                      handlePlayCard(card);
-                    } else {
-                      setSelectedHandIndex(idx);
-                      playSfx('cardPlay');
-                    }
-                  }}
-                >
-
-                  <View style={styles.cardManaRow}>
-                    {Object.entries(card.manaCost).map(([color, amount]) => (
-                      <View key={color} style={[styles.manaPip, { backgroundColor: getPipColor(color) }]}>
-                        <Text style={styles.manaPipText}>{amount}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {card.image ? (
-                    <Image source={typeof card.image === 'number' ? card.image : { uri: card.image }} style={styles.cardImage} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.cardImagePlaceholder}>
-                      <Text style={styles.cardEmoji}>{getCardEmoji(card.type)}</Text>
+          <View style={styles.playerHudSection}>
+            <AvatarCard
+              name={selectedClassId ? HERO_CLASSES.find(h => h.id === selectedClassId)?.name.toUpperCase() : "HÉROE"}
+              isPlayer={true}
+              hp={player.hp}
+              maxHp={player.maxHp}
+              shield={player.shield}
+              shakeAnim={playerShake}
+              floatingDamage={playerDamageVal ? {
+                value: playerDamageVal.amount,
+                animY: playerPopupY,
+                animOpacity: playerPopupOpacity,
+                type: playerDamageVal.type,
+                isCrit: playerDamageVal.isCrit
+              } : null}
+              flashAnim={playerFlash}
+              status={playerStatus}
+              isHorizontal={true}
+            />
+            
+            {/* RELIQUIAS EQUIPADAS */}
+            {relics.length > 0 && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: -4, marginBottom: 8, paddingHorizontal: 16, justifyContent: 'center' }}>
+                {relics.map((rId, idx) => {
+                  const relic = RELICS_POOL[rId];
+                  return relic ? (
+                    <View key={`relic_${idx}`} style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 4, borderWidth: 1, borderColor: '#f59e0b', shadowColor: '#f59e0b', shadowOpacity: 0.5, shadowRadius: 4 }}>
+                      <Text style={{ fontSize: 14 }}>{relic.emoji}</Text>
                     </View>
-                  )}
-                  
-                  <View style={styles.cardChargeBarBg}>
-                    <View style={[styles.cardChargeBarFill, { width: `${progress}%` }]} />
-                  </View>
-                  <Text style={styles.chargeText}>MANÁ: {card.charge}/{card.totalCost}</Text>
+                  ) : null;
+                })}
+              </View>
+            )}
+          </View>
 
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardName} numberOfLines={1}>{card.name}</Text>
-                    <Text style={[styles.cardType, { color: getCardTypeColor(card.type) }]}>
-                      {card.type.toUpperCase()} ({card.effectValue})
-                    </Text>
-                    <Text style={styles.cardDesc} numberOfLines={3}>{card.description}</Text>
+          {/* COLA DE CASTEO (MANO) */}
+          <View style={styles.handSection}>
+            <View style={styles.handHeader}>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Text style={styles.handTitle}>🎴 MANO ACTIVA</Text>
+                {potions.length > 0 && (
+                  <View style={{flexDirection: 'row', marginLeft: 10, gap: 4}}>
+                    {potions.map((pId, idx) => {
+                      const pot = POTIONS_POOL[pId];
+                      return (
+                        <TouchableOpacity key={`pot_${idx}`} style={{backgroundColor: '#1e293b', padding: 4, borderRadius: 12, borderWidth: 1, borderColor: '#38bdf8'}}
+                          onPress={() => handleUsePotion(pId, idx)}
+                        >
+                          <Text style={{fontSize: 12}}>{pot.emoji}</Text>
+                        </TouchableOpacity>
+                      )
+                    })}
                   </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+                )}
+              </View>
+              <TouchableOpacity onPress={handleEndTurn} style={styles.endTurnBtn} disabled={turn !== 'player'}>
+                <Text style={styles.endTurnText}>PASAR TURNO</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll} bounces={false}>
+              {hand.map((card, idx) => {
+                const isReady = card.charge >= card.totalCost;
+                const progress = Math.min(100, (card.charge / card.totalCost) * 100);
+                const cardDisabled = actionPoints <= 0 || turn !== 'player';
+                const isSelected = selectedHandIndex === idx;
+                
+                return (
+                  <TouchableOpacity
+                    key={card.id}
+                    activeOpacity={0.8}
+                    disabled={cardDisabled}
+                    style={[
+                      styles.cardContainer,
+                      isReady ? styles.cardReady : null,
+                      isSelected ? styles.cardSelected : null,
+                      cardDisabled && !isReady ? styles.cardContainerDisabled : null,
+                      { borderColor: isReady ? '#fbbf24' : 'rgba(255,255,255,0.07)' }
+                    ]}
+                    onPress={() => {
+                      if (isReady) {
+                        handlePlayCard(card);
+                      } else {
+                        setSelectedHandIndex(idx);
+                        playSfx('match');
+                      }
+                    }}
+                  >
+                    <View style={styles.cardManaRow}>
+                      <View style={[styles.manaPip, { backgroundColor: getPipColor(Object.keys(card.manaCost)[0]) }]}>
+                        <Text style={styles.manaPipText}>{card.manaCost[Object.keys(card.manaCost)[0]]}</Text>
+                      </View>
+                    </View>
+
+                    {card.image ? (
+                      <Image source={typeof card.image === 'number' ? card.image : { uri: card.image }} style={styles.cardImage} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.cardImagePlaceholder}>
+                        <Text style={styles.cardEmoji}>{getCardEmoji(card.type)}</Text>
+                      </View>
+                    )}
+                    
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardName} numberOfLines={1}>{card.name}</Text>
+                      <Text style={[styles.cardType, { color: getCardTypeColor(card.type) }]}>
+                        {card.type.toUpperCase()} ({card.effectValue})
+                      </Text>
+                      {isSelected && <Text style={styles.cardDesc} numberOfLines={2}>{card.description}</Text>}
+                    </View>
+                    <View style={styles.cardChargeBarBg}>
+                      <Animated.View style={[styles.cardChargeBarFill, { width: `${progress}%`, backgroundColor: isReady ? '#fbbf24' : '#3b82f6' }]} />
+                    </View>
+                    <Text style={styles.chargeText}>{card.charge}/{card.totalCost}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
-      </ScrollView>
+
+      </View>
 
       {/* PANTALLA DE VICTORIA ANIMADA */}
       <Modal visible={showVictoryModal} transparent animationType="none">
@@ -2155,7 +3547,16 @@ export default function App() {
           }]}>
             {/* Título */}
             <Animated.View style={{ transform: [{ translateY: victoryTitleY }] }}>
-              <Text style={styles.victoryEmoji}>{currentWorld.enemyEmoji}</Text>
+              <Animated.Image 
+                source={require('./assets/victory_chest.png')}
+                style={[styles.victoryChest3D, {
+                  transform: [
+                    { translateY: chestFloatAnim.interpolate({ inputRange: [0, 1], outputRange: [-6, 6] }) },
+                    { scale: chestFloatAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.05] }) }
+                  ]
+                }]}
+                resizeMode="contain"
+              />
               <Text style={styles.victoryTitle}>¡VICTORIA!</Text>
               <Text style={styles.victoryWorldName}>{currentWorld.name.toUpperCase()} CONQUISTADO</Text>
             </Animated.View>
@@ -2221,20 +3622,20 @@ export default function App() {
               {currentWorldIndex < WORLDS.length - 1 && (
                 <TouchableOpacity
                   onPress={() => handleClaimVictory('next')}
-                  style={[styles.victoryBtn, { backgroundColor: currentWorld.boardShadowColor }]}
+                  style={[styles.victoryBtn, styles.victoryBtnNext]}
                 >
                   <Text style={styles.victoryBtnText}>⚔️ IR AL SIGUIENTE MUNDO</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => handleClaimVictory('shop')}
-                style={[styles.victoryBtn, { backgroundColor: '#8b5cf6' }]}
+                style={[styles.victoryBtn, styles.victoryBtnShop]}
               >
                 <Text style={styles.victoryBtnText}>🛒 IR A LA TIENDA</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleClaimVictory('map')}
-                style={[styles.victoryBtn, { backgroundColor: '#374151' }]}
+                style={[styles.victoryBtn, styles.victoryBtnMap]}
               >
                 <Text style={styles.victoryBtnText}>🗺️ MAPA DE REINOS</Text>
               </TouchableOpacity>
@@ -2262,7 +3663,7 @@ export default function App() {
 
       {/* Banner de Turno Flotante */}
       {showTurnBanner && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[StyleSheet.absoluteFill, { zIndex: 9999, elevation: 9999 }]} pointerEvents="none">
           <View style={styles.turnBannerCentering}>
             <Animated.View style={[
               styles.turnBannerOverlay,
@@ -2288,22 +3689,56 @@ export default function App() {
 // ============================================================
 const styles = StyleSheet.create({
   selectionRoot: { flex: 1, backgroundColor: '#0a0a0f' },
-  selectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#1e1e2d',
-    backgroundColor: '#0a0a12',
+  
+  // ==============================
+  // GLOBAL HEADER (Glassmorphism)
+  // ==============================
+  globalHeaderContainer: {
+    backgroundColor: 'rgba(10, 10, 20, 0.75)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.15)',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 50,
+    shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowRadius: 20, shadowOpacity: 0.3, elevation: 15,
+    zIndex: 100,
+    width: '100%',
   },
-  selectionHeaderTitle: { color: '#fbbf24', fontFamily: FONT_TITLE, fontSize: 15, fontWeight: 'bold', letterSpacing: 2 },
-  xpText: { color: '#64748b', fontSize: 10, fontFamily: FONT_HUD, marginTop: 2 },
-  headerRightGroup: { flexDirection: 'row', alignItems: 'center' },
-  goldBadgeText: { color: '#fbbf24', fontWeight: 'bold', fontSize: 13, fontFamily: FONT_HUD },
-  deckCountText: { color: '#10b981', fontWeight: 'bold', fontSize: 12, fontFamily: FONT_HUD },
+  globalHeaderInner: {
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 16 },
+  
+  // Profile
+  playerProfileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 25, padding: 6, paddingRight: 16, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.4)', flex: 1, shadowColor: '#3b82f6', shadowRadius: 10, shadowOpacity: 0.2 },
+  playerAvatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(30,41,59,0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 10, borderWidth: 2, borderColor: '#60a5fa', shadowColor: '#93c5fd', shadowRadius: 8, shadowOpacity: 0.5 },
+  playerAvatarEmoji: { fontSize: 22 },
+  playerInfoBox: { justifyContent: 'center' },
+  playerName: { color: '#f8fafc', fontSize: 13, fontWeight: '900', fontFamily: FONT_HUD, letterSpacing: 0.5 },
+  xpRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
+  playerLevelLabel: { color: '#fbbf24', fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD, marginRight: 6 },
+  xpBarTrack: { width: 45, height: 5, backgroundColor: '#1e293b', borderRadius: 2.5, overflow: 'hidden' },
+  xpBarFill: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 2.5 },
+  
+  // Center Title
+  headerCenterBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerCenterText: { color: '#fbbf24', fontSize: 12, fontWeight: '900', fontFamily: FONT_HUD, letterSpacing: 1, textAlign: 'center', textShadowColor: 'rgba(251,191,36,0.3)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
 
-  navBar: { flexDirection: 'row', backgroundColor: '#0a0a12', paddingVertical: 2, borderBottomWidth: 1, borderBottomColor: '#1e1e2d' },
-  navBtn: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  navBtnActive: { borderBottomWidth: 2, borderBottomColor: '#fbbf24' },
-  navBtnText: { color: '#cbd5e1', fontFamily: FONT_UI, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  // Economy
+  headerTopRight: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'flex-end' },
+  settingsBtn: { width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  settingsBtnText: { fontSize: 18 },
+  goldPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(217, 119, 6, 0.15)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.6)', shadowColor: '#fbbf24', shadowRadius: 8, shadowOpacity: 0.3 },
+  goldPillIcon: { fontSize: 16, marginRight: 6 },
+  goldPillText: { color: '#fde047', fontSize: 15, fontWeight: '900', fontFamily: FONT_HUD },
+
+  // Nav Segments
+  segmentedNavWrapper: { paddingHorizontal: 16, paddingBottom: 16 },
+  segmentedNav: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  navSegment: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12 },
+  navSegmentActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  navSegmentText: { color: '#64748b', fontSize: 12, fontWeight: '800', fontFamily: FONT_HUD, letterSpacing: 0.5 },
+  navSegmentTextActive: { color: '#fff', textShadowColor: 'rgba(255,255,255,0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
 
   selectionScroll: { paddingHorizontal: 16, paddingBottom: 40 },
   selectionInstructions: { color: '#64748b', fontSize: 11, fontFamily: FONT_UI, textAlign: 'center', marginVertical: 16, lineHeight: 16 },
@@ -2313,6 +3748,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingVertical: 30,
     width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
     paddingHorizontal: 10,
   },
   mapConnectorLine: {
@@ -2322,108 +3759,140 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 6,
     marginLeft: -3,
-    backgroundColor: '#1e1b4b',
+    backgroundColor: 'rgba(168,85,247,0.5)',
     borderRadius: 3,
-    borderColor: 'rgba(251,191,36,0.15)',
+    borderColor: 'rgba(251,191,36,0.3)',
     borderWidth: 1,
     zIndex: 1,
+    shadowColor: '#fbbf24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 10,
+    shadowOpacity: 0.8,
   },
   mapNodeWrapper: {
-    width: '85%',
-    flexDirection: 'row',
+    width: '45%', // Narrower so they stay on their half of the screen
     alignItems: 'center',
-    marginBottom: 26,
+    marginBottom: 40,
+    position: 'relative',
     zIndex: 5,
   },
-  mapNodeDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: '#0a0a0f',
-    backgroundColor: '#3b82f6',
+  nodeHorizontalConnector: {
     position: 'absolute',
-    left: '58.8%', // Center line intersection point
-    marginLeft: -8,
-    zIndex: 10,
+    top: 30, // middle of the 64px node
+    width: 35,
+    height: 4,
+    zIndex: -1,
     shadowColor: '#fff',
     shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 6,
-    shadowOpacity: 0.8,
-  },
-  worldCard: {
-    width: '82%',
-    backgroundColor: '#0c0c16',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderBottomWidth: 6,
-    borderRightWidth: 4,
-    padding: 16,
-    position: 'relative',
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
+    shadowRadius: 5,
     shadowOpacity: 0.5,
-    elevation: 10,
   },
-  worldCardCurrent: {
+  mapNodeCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 15,
+    shadowOpacity: 0.9,
+    elevation: 10,
+    marginBottom: 8,
+  },
+  mapNodeCurrent: {
+    backgroundColor: 'rgba(30, 20, 10, 0.95)',
+    borderWidth: 4,
     borderColor: '#fbbf24',
-    borderBottomColor: '#d97706',
-    borderRightColor: '#d97706',
     shadowColor: '#fbbf24',
     shadowRadius: 20,
-    shadowOpacity: 0.8,
+    transform: [{ scale: 1.15 }],
   },
-  worldCardBg: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.22,
-    borderRadius: 14,
+  mapNodePing: {
+    position: 'absolute', width: 70, height: 70, borderRadius: 35,
+    borderWidth: 2, borderColor: '#fbbf24', opacity: 0.5,
   },
-  worldCardLocked: { opacity: 0.35 },
-  worldCardUnlocked: { opacity: 1 },
-  worldStatusBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
+  mapNodeEmoji: { fontSize: 28 },
+  mapNodeLabelBox: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    zIndex: 15,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  worldStatusBadgeText: {
-    color: '#fff',
-    fontSize: 7.5,
-    fontWeight: 'bold',
-    fontFamily: FONT_HUD,
-    letterSpacing: 0.5,
+  mapNodeLabel: { color: '#f1f5f9', fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD, textAlign: 'center' },
+
+  // World Selected Modal
+  worldModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
-  worldCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingRight: 60 },
-  worldCardEmoji: { fontSize: 26, marginRight: 10 },
-  worldCardName: { color: '#fff', fontSize: 14, fontWeight: 'bold', fontFamily: FONT_TITLE, flexShrink: 1 },
-  worldCardDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 8 },
-  worldCardBody: { gap: 4 },
+  worldModalCard: {
+    width: '90%',
+    maxWidth: 380,
+    backgroundColor: 'rgba(12, 12, 20, 0.98)',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderBottomWidth: 6,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 30,
+    shadowOpacity: 0.8,
+    elevation: 20,
+  },
+  worldModalCloseBtn: { position: 'absolute', top: 12, right: 16, padding: 8 },
+  worldModalCloseText: { color: '#64748b', fontSize: 18, fontWeight: 'bold', fontFamily: FONT_UI },
+  worldModalHeader: { alignItems: 'center', marginBottom: 12, marginTop: 10 },
+  worldModalEmoji: { fontSize: 48, marginBottom: 8 },
+  worldModalTitle: { color: '#fff', fontSize: 20, fontWeight: '900', fontFamily: FONT_TITLE, textAlign: 'center', letterSpacing: 1 },
+  worldModalDivider: { width: '80%', height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 12 },
+  worldModalBody: { alignItems: 'center', marginBottom: 24 },
+  worldModalBossTitle: { color: '#94a3b8', fontSize: 10, fontFamily: FONT_HUD, marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' },
+  worldModalBossName: { color: '#f87171', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 6 },
+  worldModalBossHp: { color: '#e2e8f0', fontSize: 12, fontFamily: FONT_HUD, fontWeight: 'bold' },
+  worldModalPlayBtn: {
+    width: '100%',
+    backgroundColor: '#d97706',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    borderBottomWidth: 4,
+    borderBottomColor: '#b45309',
+    alignItems: 'center',
+  },
+  worldModalPlayText: { color: '#fff', fontSize: 13, fontWeight: '900', fontFamily: FONT_HUD, letterSpacing: 2 },
   worldCardJefe: { color: '#f87171', fontSize: 10.5, fontWeight: 'bold', fontFamily: FONT_UI },
   worldCardHp: { color: '#64748b', fontSize: 9.5, fontFamily: FONT_HUD },
   lockOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
   lockText: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD },
 
   // Tienda
-  shopScroll: { paddingHorizontal: 16, paddingBottom: 40 },
-  shopGrid: { gap: 16 },
+  shopScroll: { paddingHorizontal: 12, paddingBottom: 40 },
+  shopGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
   shopItemCard: {
-    backgroundColor: '#0d0d1a', borderRadius: 14, borderWidth: 1,
-    borderColor: '#1e293b', padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 10, shadowOpacity: 0.4,
+    width: '48%',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)', borderRadius: 16, borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.3)', padding: 10,
+    shadowColor: '#38bdf8', shadowOffset: { width: 0, height: 0 }, shadowRadius: 12, shadowOpacity: 0.2,
   },
   shopItemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  shopItemEmoji: { fontSize: 26, marginRight: 8 },
-  shopItemName: { color: '#f1f5f9', fontSize: 15, fontWeight: 'bold', fontFamily: FONT_TITLE },
-  shopItemDesc: { color: '#64748b', fontSize: 11, fontFamily: FONT_UI, marginBottom: 8, lineHeight: 16 },
-  shopItemType: { fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD, marginBottom: 12 },
-  shopBuyBtn: { backgroundColor: '#fbbf24', paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
-  shopBuyBtnText: { color: '#000', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 11, letterSpacing: 1 },
-  shopBoughtBadge: { backgroundColor: '#1e293b', paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
-  shopBoughtText: { color: '#64748b', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 11 },
+  shopItemEmoji: { fontSize: 18, marginRight: 6 },
+  shopItemName: { color: '#f1f5f9', fontSize: 12, fontWeight: 'bold', fontFamily: FONT_TITLE, flex: 1 },
+  shopCardImage: { width: '100%', height: 60, borderRadius: 6, marginBottom: 8 },
+  shopItemDesc: { color: '#64748b', fontSize: 9, fontFamily: FONT_UI, marginBottom: 8, lineHeight: 12 },
+  shopItemType: { fontSize: 8, fontWeight: 'bold', fontFamily: FONT_HUD, marginBottom: 10 },
+  shopBuyBtn: { backgroundColor: '#fbbf24', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  shopBuyBtnText: { color: '#000', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 9, letterSpacing: 1 },
+  shopBoughtBadge: { backgroundColor: '#1e293b', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  shopBoughtText: { color: '#64748b', fontWeight: 'bold', fontFamily: FONT_HUD, fontSize: 9 },
 
   // Mazo
   deckScroll: { paddingHorizontal: 16, paddingBottom: 40 },
@@ -2596,94 +4065,76 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     opacity: 0.4,
   },
+  // Rediseño HUD Vertical
+  bossHudSection: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 40,
+    paddingBottom: 5,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  playerBottomArea: {
+    paddingBottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)',
+    flexShrink: 0,
+    minHeight: 180,
+  },
+  playerHudSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  combatInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+
+  avatarHorizontalContainer: {
+    backgroundColor: 'rgba(15,20,30,0.7)',
+    borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    padding: 8,
+  },
+  avatarFrameHorizontal: {
+    width: 50, height: 50, borderRadius: 25,
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  avatarInfoHorizontal: {
+    flex: 1, justifyContent: 'center',
+  },
+  avatarNameHorizontal: {
+    color: '#e2e8f0', fontSize: 13, fontWeight: 'bold', marginBottom: 2, letterSpacing: 0.5,
+  },
+  statsRowHorizontal: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 4,
+  },
+  barBgHorizontal: {
+    height: 8, backgroundColor: '#1e293b', borderRadius: 4, overflow: 'hidden', width: '100%',
+  },
+
   boardScene: {
+    flex: 1,
     position: 'relative',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 18,
     zIndex: 5,
-  },
-  boardPlatformBase: {
-    position: 'absolute',
-    bottom: -15,
-    width: BOARD_WIDTH + 8,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.15)',
-    transform: [{ rotateX: '65deg' }],
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 16,
-    shadowOpacity: 0.85,
-    elevation: 12,
   },
   boardWrapper: {
     width: '100%',
-    borderWidth: 3,
     borderRadius: 16,
     shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 30,
-    shadowOpacity: 1,
-    elevation: 15,
-    backgroundColor: 'rgba(10, 10, 15, 0.92)',
-  },
-  
-  // Mazo boca abajo del enemigo
-  enemyDeckSection: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  enemyDeckLabel: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 9,
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  enemyDeckRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-  },
-  enemyCardBack: {
-    width: 34,
-    height: 48,
-    borderRadius: 6,
-    borderWidth: 2,
-    backgroundColor: '#1a1a2e',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
+    shadowRadius: 20,
     shadowOpacity: 0.5,
-    overflow: 'hidden',
-  },
-  enemyCardBackInner: {
-    width: '80%',
-    height: '80%',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  enemyCardBackIcon: { fontSize: 16, opacity: 0.5 },
-  enemyCardBackShine: {
-    position: 'absolute', top: 0, right: 0, width: 10, height: '100%',
-    opacity: 0.08, borderTopRightRadius: 6, borderBottomRightRadius: 6,
+    elevation: 10,
   },
 
-  handSection: { paddingHorizontal: 14, paddingTop: 8 },
-  handHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
+  handSection: { paddingHorizontal: 16, paddingBottom: 10 },
+  handHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
   handTitle: { color: '#94a3b8', fontSize: 9, fontFamily: FONT_HUD, letterSpacing: 1 },
   endTurnBtn: {
     backgroundColor: '#0f172a',
@@ -2694,12 +4145,13 @@ const styles = StyleSheet.create({
 
   cardsScroll: { paddingRight: 16 },
   cardContainer: {
-    width: 144,
+    width: 105,
+    height: 155,
     backgroundColor: 'rgba(10,15,30,0.88)',
-    borderRadius: 14, padding: 10, marginRight: 10,
+    borderRadius: 12, padding: 6, marginRight: 8,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden', elevation: 7,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowRadius: 14, shadowOpacity: 0.5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowRadius: 10, shadowOpacity: 0.5,
   },
   cardContainerDisabled: { opacity: 0.4 },
   cardReady: {
@@ -2708,21 +4160,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.9,
     shadowRadius: 18, elevation: 14, borderWidth: 2,
   },
-  cardManaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 7 },
-  manaPip: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  manaPipText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  cardImage: { height: 72, borderRadius: 8, marginBottom: 7, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  cardImagePlaceholder: { height: 72, backgroundColor: '#0f172a', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
+  cardManaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },
+  manaPip: { width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  manaPipText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
+  cardImage: { height: 50, borderRadius: 6, marginBottom: 6, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  cardImagePlaceholder: { height: 50, backgroundColor: '#0f172a', borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   shopCardImage: { height: 100, borderRadius: 10, marginBottom: 10, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   deckCardImage: { height: 80, borderRadius: 8, marginBottom: 8, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   cardEmoji: { fontSize: 30 },
   cardChargeBarBg: { height: 4, backgroundColor: '#1e293b', borderRadius: 2, marginBottom: 4 },
   cardChargeBarFill: { height: '100%', backgroundColor: '#f59e0b', borderRadius: 2 },
-  chargeText: { color: '#64748b', fontSize: 8, fontFamily: FONT_HUD, textAlign: 'right', marginBottom: 5 },
-  cardInfo: { flex: 1 },
-  cardName: { color: '#f1f5f9', fontSize: 11, fontWeight: 'bold', marginBottom: 2, fontFamily: FONT_UI },
-  cardType: { fontSize: 9, fontWeight: 'bold', fontFamily: FONT_HUD, marginBottom: 3 },
-  cardDesc: { color: '#64748b', fontSize: 8, lineHeight: 12, fontFamily: FONT_UI },
+  chargeText: { color: '#64748b', fontSize: 8, fontFamily: FONT_HUD, textAlign: 'right', marginBottom: 2 },
+  cardInfo: { flex: 1, justifyContent: 'flex-start' },
+  cardName: { color: '#f1f5f9', fontSize: 10, fontWeight: 'bold', marginBottom: 2, fontFamily: FONT_UI },
+  cardType: { fontSize: 8, fontWeight: 'bold', fontFamily: FONT_HUD, marginBottom: 2 },
+  cardDesc: { color: '#64748b', fontSize: 8, lineHeight: 11, fontFamily: FONT_UI },
 
   // Modales
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -2750,18 +4202,24 @@ const styles = StyleSheet.create({
   victoryStarBL: { bottom: 100, left: 20 },
   victoryStarBR: { bottom: 100, right: 20 },
   victoryCard: {
-    width: '92%',
-    backgroundColor: 'rgba(15,15,30,0.98)',
-    borderRadius: 20,
+    width: '94%',
+    backgroundColor: 'rgba(10, 12, 25, 0.96)',
+    borderRadius: 24,
     borderWidth: 2,
-    borderColor: 'rgba(251,191,36,0.5)',
-    padding: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 4,
+    borderColor: 'rgba(251,191,36,0.6)',
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#fbbf24',
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 30,
-    shadowOpacity: 0.6,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 40,
+    shadowOpacity: 0.9,
+    elevation: 25,
+  },
+  victoryChest3D: {
+    width: 100, height: 100, alignSelf: 'center', marginBottom: 12,
+    shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 15 }, shadowRadius: 30, shadowOpacity: 0.9, elevation: 20
   },
   victoryEmoji: { fontSize: 56, textAlign: 'center', marginBottom: 6 },
   victoryTitle: {
@@ -2824,12 +4282,16 @@ const styles = StyleSheet.create({
     fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 2,
   },
   nextWorldEnemy: { color: '#ef4444', fontSize: 10, fontFamily: FONT_UI, fontWeight: 'bold' },
-  victoryBtnsCol: { width: '100%', gap: 8 },
+  victoryBtnsCol: { width: '100%', gap: 12 },
   victoryBtn: {
-    width: '100%', paddingVertical: 13, borderRadius: 10, alignItems: 'center',
-    elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, shadowOpacity: 0.5,
+    width: '100%', paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+    borderTopWidth: 1, borderBottomWidth: 5, borderLeftWidth: 1, borderRightWidth: 1,
+    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowRadius: 10, shadowOpacity: 0.6,
   },
-  victoryBtnText: { color: '#fff', fontFamily: FONT_HUD, fontSize: 11, fontWeight: 'bold', letterSpacing: 1.5 },
+  victoryBtnNext: { backgroundColor: '#d97706', borderColor: '#b45309', borderTopColor: '#fcd34d' },
+  victoryBtnShop: { backgroundColor: '#8b5cf6', borderColor: '#6d28d9', borderTopColor: '#c4b5fd' },
+  victoryBtnMap: { backgroundColor: '#374151', borderColor: '#1f2937', borderTopColor: '#6b7280' },
+  victoryBtnText: { color: '#fff', fontFamily: FONT_HUD, fontSize: 13, fontWeight: '900', letterSpacing: 2 },
 
   // Legacy (victoria modal viejo)
   lootContainer: { alignItems: 'center', justifyContent: 'center', width: '100%' },
@@ -3146,6 +4608,13 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOpacity: 0.8,
     elevation: 10,
+  },
+  bossIntentContainer: {
+    position: 'absolute',
+    bottom: -10,
+    alignSelf: 'center',
+    zIndex: 10,
+    alignItems: 'center',
   },
   turnBannerText: {
     fontSize: 22,
