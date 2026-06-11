@@ -192,7 +192,7 @@ const WORLDS = [
     enemyName: 'Demonio de Asberos',
     enemyHp: 300,
     enemyEmoji: '🌋',
-    enemyType: 'DEMON',
+    enemyType: 'DEMON'
   },
   {
     id: 2,
@@ -204,7 +204,7 @@ const WORLDS = [
     enemyName: 'Kirin Ancestral',
     enemyHp: 450,
     enemyEmoji: '⚡',
-    enemyType: 'CYBER',
+    enemyType: 'CYBER'
   },
   {
     id: 3,
@@ -216,7 +216,7 @@ const WORLDS = [
     enemyName: 'Titán de Granito',
     enemyHp: 600,
     enemyEmoji: '🪨',
-    enemyType: 'DEMON',
+    enemyType: 'DEMON'
   },
   {
     id: 4,
@@ -353,8 +353,9 @@ const HERO_CLASSES = [
     desc: 'Maestro del fuego. Inicia con poca vida pero un mazo devastador.',
     startHp: 75,
     startShield: 10,
-    startDeck: ['c1', 'c1', 'c2', 'c3', 'c47'], // Ataques de fuego y quemaduras
-    relic: 'r_mage'
+    startDeck: ['c1', 'c3', 'c47'], // 3 cartas: Ataques de fuego
+    relic: 'r_mage',
+    image: require('./assets/hero_pyromancer.png')
   },
   {
     id: 'paladin',
@@ -364,8 +365,9 @@ const HERO_CLASSES = [
     desc: 'Guerrero sagrado. Alta vitalidad y defensas impenetrables.',
     startHp: 120,
     startShield: 30,
-    startDeck: ['c2', 'c2', 'c10', 'c34', 'c11'], // Escudos y golpes contundentes
-    relic: 'r_paladin'
+    startDeck: ['c2', 'c10', 'c11'], // 3 cartas: Escudos y golpes
+    relic: 'r_paladin',
+    image: require('./assets/hero_paladin.png')
   },
   {
     id: 'assassin',
@@ -375,8 +377,9 @@ const HERO_CLASSES = [
     desc: 'Letal y rápido. Mazo enfocado en veneno continuo.',
     startHp: 90,
     startShield: 15,
-    startDeck: ['c1', 'c14', 'c42', 'c42', 'c60'], // Venenos e ignorar armadura
-    relic: 'r_assassin'
+    startDeck: ['c14', 'c42', 'c60'], // 3 cartas: Letales
+    relic: 'r_assassin',
+    image: require('./assets/hero_assassin.png')
   }
 ];
 
@@ -388,7 +391,7 @@ const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.32, 280);
 // ============================================================
 //  COMPONENTE AUXILIAR: AvatarCard (con barras animadas)
 // ============================================================
-function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, status, bossIntent, isHorizontal = false }) {
+function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, image, status, bossIntent, isHorizontal = false }) {
   const barColor = isPlayer ? '#10b981' : '#e11d48';
   const emoji = emojiOverride || (isPlayer ? '\uD83D\uDC32' : '\uD83E\uDD16');
 
@@ -444,17 +447,19 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         <View style={{ flexDirection: isPlayer ? 'row' : 'row-reverse', alignItems: 'center', width: '100%' }}>
           {/* Avatar Area */}
           <View style={[styles.avatarFrameHorizontal, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
-            <Animated.Image 
-              source={isPlayer ? require('./assets/player_avatar.png') : require('./assets/boss_avatar.png')}
-              style={{
-                width: 50, height: 50,
+            <Animated.View style={{
                 transform: [
                   { translateY: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [-3, 3] }) },
                   { scale: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] }) }
-                ]
-              }}
-              resizeMode="contain"
-            />
+                ],
+                width: 50, height: 50, alignItems: 'center', justifyContent: 'center'
+            }}>
+              {image ? (
+                <Image source={typeof image === 'number' ? image : { uri: image }} style={{ width: '100%', height: '100%', borderRadius: 25 }} resizeMode="cover" />
+              ) : (
+                <Text style={{ fontSize: 36 }}>{emoji}</Text>
+              )}
+            </Animated.View>
             {floatingDamage && (
               <Animated.View style={[
                 styles.floatingDamageContainer,
@@ -473,8 +478,6 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
 
           {/* Info Area */}
           <View style={[styles.avatarInfoHorizontal, isPlayer ? { marginLeft: 12 } : { marginRight: 12, alignItems: 'flex-end' }]}>
-            <Text style={[styles.avatarNameHorizontal, { fontFamily: FONT_TITLE }]} numberOfLines={1}>{name}</Text>
-            
             <View style={[styles.statsRowHorizontal, isPlayer ? { justifyContent: 'flex-start' } : { justifyContent: 'flex-end' }]}>
               <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13, marginRight: isPlayer ? 10 : 0, marginLeft: isPlayer ? 0 : 10 }]}>❤️ {Math.ceil(hp)}</Text>
               <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13 }]}>🛡️ {Math.ceil(shield)}</Text>
@@ -484,6 +487,9 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
               <Animated.View style={[styles.barFill, { width: hpPercent, backgroundColor: barColorAnim }]} />
               <Animated.View style={[styles.barGlow, { width: hpPercent, backgroundColor: barColorAnim, opacity: 0.4 }]} />
             </View>
+            
+            {/* Nombre movido MÁS ABAJO de la barra de vida */}
+            <Text style={[styles.avatarNameHorizontal, { fontFamily: FONT_TITLE, marginTop: 4, marginBottom: 0, opacity: 0.8, fontSize: 10 }]} numberOfLines={1}>{name}</Text>
 
             {/* Energía y Boss Intent */}
             {!isPlayer && maxEnergy > 0 && (
@@ -526,18 +532,19 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         outputRange: ['rgba(0,0,0,0)', isPlayer ? 'rgba(251,191,36,0.4)' : 'rgba(239,68,68,0.4)']
       })}]} pointerEvents="none" />
       <View style={[styles.avatarFrame, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
-        <Animated.Image 
-          source={isPlayer ? require('./assets/player_avatar.png') : require('./assets/boss_avatar.png')}
-          style={{
-            width: 55,
-            height: 55,
+        <Animated.View style={{
             transform: [
               { translateY: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [-4, 4] }) },
               { scale: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.04] }) }
-            ]
-          }}
-          resizeMode="contain"
-        />
+            ],
+            width: 55, height: 55, alignItems: 'center', justifyContent: 'center'
+        }}>
+          {image ? (
+            <Image source={typeof image === 'number' ? image : { uri: image }} style={{ width: '100%', height: '100%', borderRadius: 27.5 }} resizeMode="cover" />
+          ) : (
+            <Text style={{ fontSize: 40 }}>{emoji}</Text>
+          )}
+        </Animated.View>
 
         {floatingDamage && (
           <Animated.View style={[
@@ -833,6 +840,201 @@ const generateProceduralMap = (worldId) => {
 };
 
 // ============================================================
+//  PANTALLA DE SELECCIÓN DE HÉROE (PREMIUM 3D CAROUSEL)
+// ============================================================
+const HeroSelectionScreen = ({ onSelect, screenTransitionAnim }) => {
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const itemWidth = Dimensions.get('window').width * 0.82;
+  const itemSpacer = (Dimensions.get('window').width - itemWidth) / 2;
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#05050a' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+      
+      {/* Background Effect */}
+      <View style={{ ...StyleSheet.absoluteFillObject, opacity: 0.3, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: Dimensions.get('window').width * 1.5, height: Dimensions.get('window').width * 1.5, borderRadius: Dimensions.get('window').width, backgroundColor: '#3b82f6', opacity: 0.1, transform: [{ scaleY: 2 }] }} />
+      </View>
+
+      <View style={{ marginTop: 50, alignItems: 'center', marginBottom: 20 }}>
+        <Text style={[styles.introLogoTitle, { fontSize: 34, letterSpacing: 6, textShadowColor: '#fbbf24', textShadowRadius: 15 }]}>ELIGE TU CAMINO</Text>
+        <Text style={{ color: '#94a3b8', fontSize: 12, fontFamily: FONT_UI, letterSpacing: 2, marginTop: 5, textTransform: 'uppercase' }}>El multiverso necesita un campeón</Text>
+      </View>
+
+      <Animated.FlatList
+        data={HERO_CLASSES}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        bounces={false}
+        snapToInterval={itemWidth}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingHorizontal: itemSpacer, alignItems: 'center' }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        renderItem={({ item, index }) => {
+          const inputRange = [
+            (index - 1) * itemWidth,
+            index * itemWidth,
+            (index + 1) * itemWidth
+          ];
+          const scale = scrollX.interpolate({ inputRange, outputRange: [0.85, 1.05, 0.85], extrapolate: 'clamp' });
+          const opacity = scrollX.interpolate({ inputRange, outputRange: [0.4, 1, 0.4], extrapolate: 'clamp' });
+          const translateY = scrollX.interpolate({ inputRange, outputRange: [40, 0, 40], extrapolate: 'clamp' });
+
+          return (
+            <View style={{ width: itemWidth, alignItems: 'center', justifyContent: 'center' }}>
+              <Animated.View style={{
+                width: '100%',
+                height: Dimensions.get('window').height * 0.65,
+                transform: [{ scale }, { translateY }],
+                opacity,
+              }}>
+                <TouchableOpacity 
+                  activeOpacity={0.9} 
+                  onPress={() => onSelect(item)}
+                  style={{ flex: 1, borderRadius: 24, overflow: 'hidden', borderWidth: 2, borderColor: item.color, backgroundColor: '#0f172a', shadowColor: item.color, shadowOpacity: 0.6, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } }}
+                >
+                  <Image source={item.image} style={{ ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' }} resizeMode="cover" />
+                  
+                  {/* Glassmorphism Gradient Overlay */}
+                  <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', backgroundColor: 'rgba(5, 5, 15, 0.85)', padding: 20, justifyContent: 'flex-end', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 28, marginRight: 10, textShadowColor: item.color, textShadowRadius: 10 }}>{item.emoji}</Text>
+                      <Text style={{ color: '#fff', fontSize: 22, fontFamily: FONT_TITLE, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 10 }}>{item.name}</Text>
+                    </View>
+                    
+                    <Text style={{ color: '#cbd5e1', fontSize: 13, fontFamily: FONT_UI, lineHeight: 18, marginBottom: 15 }}>{item.desc}</Text>
+                    
+                    <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239, 68, 68, 0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.5)' }}>
+                        <Text style={{ color: '#fca5a5', fontSize: 13, fontFamily: FONT_HUD, fontWeight: 'bold' }}>❤️ {item.startHp}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.5)' }}>
+                        <Text style={{ color: '#93c5fd', fontSize: 13, fontFamily: FONT_HUD, fontWeight: 'bold' }}>🛡️ {item.startShield}</Text>
+                      </View>
+                    </View>
+
+                    <View style={{ width: '100%', backgroundColor: item.color, paddingVertical: 14, borderRadius: 12, alignItems: 'center', shadowColor: item.color, shadowOpacity: 0.8, shadowRadius: 10 }}>
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '900', fontFamily: FONT_HUD, letterSpacing: 2, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 5 }}>ELEGIR CAMPEÓN</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          );
+        }}
+      />
+    </SafeAreaView>
+  );
+};
+
+// ============================================================
+//  PANTALLA DE TRANSICIÓN CINEMATOGRÁFICA (SLAY THE SPIRE STYLE)
+// ============================================================
+const ActTransitionScreen = ({ worldIndex, onComplete }) => {
+  const [text, setText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+  
+  const actNumber = worldIndex + 1;
+  const nextWorldName = WORLDS[worldIndex % WORLDS.length]?.name || 'Reino Desconocido';
+  
+  const transitionTexts = [
+    `Has conquistado la Arena de Lava...\nEl calor abrasador queda atrás.\nAhora, las tormentas te aguardan en el Acto ${actNumber}.`,
+    `El Templo del Rayo ha caído en silencio...\nTu voluntad es inquebrantable.\nPero la piedra no sangra. Avanza al Acto ${actNumber}.`,
+    `La Cripta de Piedra se desmorona...\nEl vacío llama a tu nombre.\nAdéntrate en la oscuridad del Acto ${actNumber}.`,
+    `El Vacío Cósmico no pudo devorarte...\nLa luz se refracta en tu horizonte.\nBienvenido al Acto ${actNumber}.`
+  ];
+  
+  const fullText = transitionTexts[(worldIndex - 1) % transitionTexts.length] || `Un jefe ha caído...\nPero tu viaje no tiene fin.\nPrepárate para el Acto ${actNumber}: ${nextWorldName}.`;
+
+  const walkAnim = useRef(new Animated.Value(-100)).current;
+
+  useEffect(() => {
+    // Animación del personaje caminando por la pantalla oscura
+    Animated.timing(walkAnim, {
+      toValue: Dimensions.get('window').width + 100,
+      duration: 5000,
+      easing: Easing.linear,
+      useNativeDriver: true
+    }).start();
+
+    // Efecto Typewriter
+    let index = 0;
+    const interval = setInterval(() => {
+      setText(fullText.slice(0, index + 1));
+      index++;
+      if (index > fullText.length) {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 45); // Velocidad de escritura
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#030008', justifyContent: 'center', alignItems: 'center', padding: 30 }}>
+      <StatusBar barStyle="light-content" backgroundColor="#030008" />
+      
+      <Animated.Image 
+        source={require('./assets/player_avatar.png')}
+        style={{
+          position: 'absolute',
+          bottom: '25%',
+          width: 80,
+          height: 80,
+          transform: [{ translateX: walkAnim }],
+          opacity: 0.7,
+          tintColor: '#000' // Silhouette effect
+        }}
+        resizeMode="contain"
+      />
+      <Animated.Image 
+        source={require('./assets/player_avatar.png')}
+        style={{
+          position: 'absolute',
+          bottom: '25%',
+          width: 80,
+          height: 80,
+          transform: [{ translateX: walkAnim }],
+          opacity: 0.3
+        }}
+        resizeMode="contain"
+      />
+
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <Text style={{ 
+          color: '#e2e8f0', 
+          fontSize: 16, 
+          fontFamily: FONT_MEDIEVAL, 
+          textAlign: 'center', 
+          lineHeight: 32,
+          letterSpacing: 1.5,
+          textShadowColor: 'rgba(255,255,255,0.3)',
+          textShadowRadius: 10
+        }}>
+          {text}
+        </Text>
+      </View>
+
+      {!isTyping && (
+        <TouchableOpacity 
+          style={{ position: 'absolute', bottom: 40, padding: 15, borderBottomWidth: 1, borderColor: '#64748b' }}
+          onPress={onComplete}
+        >
+          <Text style={{ color: '#94a3b8', fontFamily: FONT_HUD, fontSize: 12, letterSpacing: 2 }}>[ TOCA PARA CONTINUAR ]</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// ============================================================
 //  TUTORIAL MODAL
 // ============================================================
 const TutorialModal = ({ visible, onClose }) => {
@@ -960,7 +1162,116 @@ const InventoryModal = ({ visible, onClose, relics, collection }) => {
   );
 };
 
-export default function App() {
+// ============================================================
+//  CUSTOM ALERT MODAL
+// ============================================================
+const CustomAlertModal = ({ visible, message, onConfirm }) => {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent animationType="fade" visible={visible}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ backgroundColor: '#0f172a', borderWidth: 2, borderColor: '#3b82f6', borderRadius: 16, padding: 24, width: '100%', maxWidth: 350, alignItems: 'center', shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowRadius: 15, shadowOpacity: 0.5 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontFamily: FONT_UI, textAlign: 'center', lineHeight: 24, marginBottom: 24 }}>
+            {message}
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#3b82f6', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 8, width: '100%', alignItems: 'center' }}
+            onPress={onConfirm}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: FONT_HUD, letterSpacing: 1 }}>ACEPTAR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ============================================================
+//  TUTORIAL MODAL (ONBOARDING)
+// ============================================================
+const CombatTutorialModal = ({ step, onNext, onSkip }) => {
+  if (step === 0) return null;
+
+  const getStepContent = () => {
+    switch(step) {
+      case 1: return {
+        title: "¡Bienvenido al Combate!",
+        text: "Arriba verás a tu enemigo y su Próxima Acción (⚔️ Atacar, 🛡️ Defender, etc). ¡El combate es por turnos!",
+        emoji: "🤖"
+      };
+      case 2: return {
+        title: "Tus Puntos de Acción (PA)",
+        text: "Cada turno tienes 3 PA (⭐). Tocar una carta de tu mano consume PA y desata su efecto sobre el enemigo o sobre ti mismo.",
+        emoji: "🎴"
+      };
+      case 3: return {
+        title: "El Tablero Elemento",
+        text: "Juntar 3 gemas te otorga Maná (necesario para las cartas más fuertes). \nLas espadas (⚔️) hacen daño directo y los escudos (🛡️) te protegen.",
+        emoji: "💎"
+      };
+      case 4: return {
+        title: "¡Combos Épicos!",
+        text: "Si logras juntar 4 o 5 gemas iguales, ¡ganarás un TURNO EXTRA (+1 PA)! Usa esto a tu favor para dominar a los jefes.",
+        emoji: "🔥"
+      };
+      default: return null;
+    }
+  };
+
+  const content = getStepContent();
+  if (!content) return null;
+
+  return (
+    <Modal transparent animationType="fade" visible={true}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ backgroundColor: '#0f172a', borderWidth: 2, borderColor: '#fbbf24', borderRadius: 16, padding: 24, width: '100%', maxWidth: 350, alignItems: 'center', shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 4 }, shadowRadius: 20, shadowOpacity: 0.6 }}>
+          <Text style={{ fontSize: 40, marginBottom: 10 }}>{content.emoji}</Text>
+          <Text style={{ color: '#fbbf24', fontSize: 20, fontFamily: FONT_TITLE, textAlign: 'center', marginBottom: 12 }}>{content.title}</Text>
+          <Text style={{ color: '#fff', fontSize: 14, fontFamily: FONT_UI, textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+            {content.text}
+          </Text>
+          
+          <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+            <TouchableOpacity 
+              style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 12, borderRadius: 8, alignItems: 'center' }}
+              onPress={onSkip}
+            >
+              <Text style={{ color: '#94a3b8', fontWeight: 'bold', fontFamily: FONT_HUD }}>SALTAR</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ flex: 2, backgroundColor: '#fbbf24', paddingVertical: 12, borderRadius: 8, alignItems: 'center' }}
+              onPress={onNext}
+            >
+              <Text style={{ color: '#000', fontWeight: '900', fontFamily: FONT_HUD }}>{step === 4 ? '¡ENTENDIDO!' : 'SIGUIENTE'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Progress dots */}
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 15 }}>
+            {[1, 2, 3, 4].map(s => (
+              <View key={s} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: s === step ? '#fbbf24' : '#334155' }} />
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+function GameApp() {
+  // Sobrescribir el alert nativo para que use nuestro CustomAlertModal
+  const alert = (message) => {
+    if (globalThis.setCustomAlert) {
+      globalThis.setCustomAlert({ message });
+    } else {
+      console.log(message);
+    }
+  };
+
   // --- NAVEGACIÓN Y ECONOMÍA ---
   const [gameState, setGameState] = useState('intro'); // 'intro' | 'level_selection' | 'shop' | 'deck_management' | 'combat'
   const [maxUnlockedWorld, setMaxUnlockedWorld] = useState(1);
@@ -1083,6 +1394,8 @@ export default function App() {
   // --- GUARDADO LOCAL ---
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
+  const [hasSeenCombatTutorial, setHasSeenCombatTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   const saveGameState = async () => {
     try {
@@ -1098,7 +1411,8 @@ export default function App() {
         actMap,
         completedNodes,
         sfxEnabled,
-        hasSeenTutorial
+        hasSeenTutorial,
+        hasSeenCombatTutorial
       };
       await AsyncStorage.setItem('@rpg_save_data', JSON.stringify(data));
     } catch (e) {
@@ -1123,6 +1437,7 @@ export default function App() {
         if (data.completedNodes) setCompletedNodes(data.completedNodes);
         if (data.sfxEnabled !== undefined) setSfxEnabled(data.sfxEnabled);
         if (data.hasSeenTutorial !== undefined) setHasSeenTutorial(data.hasSeenTutorial);
+        if (data.hasSeenCombatTutorial !== undefined) setHasSeenCombatTutorial(data.hasSeenCombatTutorial);
       }
     } catch (e) {
       console.log('Error loading data', e);
@@ -1140,7 +1455,7 @@ export default function App() {
     if (isDataLoaded) {
       saveGameState();
     }
-  }, [maxUnlockedWorld, gold, level, xp, collection, relics, cardUpgrades, playerDecks, actMap, completedNodes, sfxEnabled, hasSeenTutorial]);
+  }, [maxUnlockedWorld, gold, level, xp, collection, relics, cardUpgrades, playerDecks, actMap, completedNodes, sfxEnabled, hasSeenTutorial, hasSeenCombatTutorial]);
 
   // Estatus de banner animado de turno
   const [showTurnBanner, setShowTurnBanner] = useState(null); // null | 'player' | 'enemy'
@@ -1184,11 +1499,11 @@ export default function App() {
     comboMsgOpacity.setValue(1);
     comboMsgY.setValue(0);
     Animated.parallel([
-      Animated.spring(comboMsgScale, { toValue: 1.4, friction: 3, tension: 120, useNativeDriver: true }),
-      Animated.timing(comboMsgY, { toValue: -65, duration: 750, useNativeDriver: true }),
+      Animated.spring(comboMsgScale, { toValue: 1.4, friction: 3, tension: 120, useNativeDriver: false }),
+      Animated.timing(comboMsgY, { toValue: -65, duration: 750, useNativeDriver: false }),
       Animated.sequence([
         Animated.delay(450),
-        Animated.timing(comboMsgOpacity, { toValue: 0, duration: 300, useNativeDriver: true })
+        Animated.timing(comboMsgOpacity, { toValue: 0, duration: 300, useNativeDriver: false })
       ])
     ]).start(() => {
       setComboMsg(null);
@@ -1561,11 +1876,11 @@ export default function App() {
   const triggerShake = (isTargetPlayer) => {
     const targetAnim = isTargetPlayer ? playerShake : enemyShake;
     Animated.sequence([
-      Animated.timing(targetAnim, { toValue: 1, duration: 50, useNativeDriver: true }),
-      Animated.timing(targetAnim, { toValue: -1, duration: 50, useNativeDriver: true }),
-      Animated.timing(targetAnim, { toValue: 1, duration: 50, useNativeDriver: true }),
-      Animated.timing(targetAnim, { toValue: -1, duration: 50, useNativeDriver: true }),
-      Animated.timing(targetAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      Animated.timing(targetAnim, { toValue: 1, duration: 50, useNativeDriver: false }),
+      Animated.timing(targetAnim, { toValue: -1, duration: 50, useNativeDriver: false }),
+      Animated.timing(targetAnim, { toValue: 1, duration: 50, useNativeDriver: false }),
+      Animated.timing(targetAnim, { toValue: -1, duration: 50, useNativeDriver: false }),
+      Animated.timing(targetAnim, { toValue: 0, duration: 50, useNativeDriver: false }),
     ]).start();
   };
 
@@ -1692,8 +2007,8 @@ export default function App() {
     targetOpacity.setValue(1);
 
     Animated.parallel([
-      Animated.timing(targetY, { toValue: -50, duration: 1000, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
-      Animated.timing(targetOpacity, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      Animated.timing(targetY, { toValue: -50, duration: 1000, easing: Easing.out(Easing.back(1.5)), useNativeDriver: false }),
+      Animated.timing(targetOpacity, { toValue: 0, duration: 1000, useNativeDriver: false }),
     ]).start(() => {
       if (isTargetPlayer) setPlayerDamageVal(null);
       else setEnemyDamageVal(null);
@@ -2082,16 +2397,8 @@ export default function App() {
               return copy;
             });
             
-            setPlayerDecks(prev => {
-              const newId = prev.length > 0 ? Math.max(...prev.map(d => d.id)) + 1 : 1;
-              return [...prev, { id: newId, name: newDeckInfo.name, cards: [...newDeckInfo.playerDeck] }];
-            });
-            
-            // Set active deck to the newly added one
-            setActiveDeckIndex(playerDecks.length);
-            
             setTimeout(() => {
-              alert(`¡Has avanzado al Mundo ${nextWorldId}!\nHas desbloqueado el [${newDeckInfo.name}] con nuevas cartas para enfrentar mayores peligros. ¡Se ha equipado automáticamente!`);
+              alert(`¡Has avanzado al Mundo ${nextWorldId}!\nHas desbloqueado nuevas cartas del [${newDeckInfo.name}].\n¡Ve a TUS MAZOS para equiparlas!`);
             }, 800);
           }
 
@@ -2104,25 +2411,24 @@ export default function App() {
           setActMap([]); 
           setCurrentNodeId(null);
           setCompletedNodes([]);
-          setTimeout(() => {
-            alert(`¡Has avanzado al Mundo ${maxUnlockedWorld + 1} (Ascensión)!\nLos enemigos ahora son mucho más fuertes y letales.`);
-          }, 800);
         }
       } else {
         // Just farming an old world
         setActMap([]); 
         setCurrentNodeId(null);
         setCompletedNodes([]);
-        setTimeout(() => {
-          alert(`¡Has completado este mundo de nuevo! Excelente para conseguir oro extra.`);
-        }, 800);
       }
+      
+      setShowVictoryModal(false);
+      setVictoryPhase('idle');
+      changeGameState('act_transition');
+      return;
     }
 
     setShowVictoryModal(false);
     setVictoryPhase('idle');
     changeGameState('level_selection');
-  }, [currentNodeId, actMap, maxUnlockedWorld, playerDecks.length]);
+  }, [currentNodeId, actMap, maxUnlockedWorld, playerDecks.length, currentWorldIndex, collection]);
 
   const handleNodeSelect = (node) => {
     // Check if playable
@@ -2211,6 +2517,11 @@ export default function App() {
       setHand(deckCards);
       
       setCombatLog(`¡Te encuentras con un ${enemyName}!`);
+      
+      if (!hasSeenCombatTutorial && currentWorldIndex === 0) {
+        setTutorialStep(1);
+        setHasSeenCombatTutorial(true);
+      }
       
       changeGameState('combat');
     } else if (node.type === 'shop') {
@@ -2397,7 +2708,7 @@ export default function App() {
           >
             <Text style={styles.introStartBtnText}>⚡ INICIAR AVENTURA</Text>
           </TouchableOpacity>
-          <Text style={styles.introVersionText}>v1.1.0 — RPG Match-3 Cards</Text>
+          <Text style={styles.introVersionText}>v1.2.1 — RPG Match-3 Cards</Text>
         </Animated.View>
       </SafeAreaView>
     );
@@ -2408,61 +2719,24 @@ export default function App() {
   // ============================================================
   if (gameState === 'hero_selection') {
     return (
-      <SafeAreaView style={[styles.introRoot, { backgroundColor: '#03000a' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
-        
-        <Text style={[styles.introLogoTitle, { fontSize: 32, marginBottom: 4, letterSpacing: 4 }]}>ELIGE TU CAMINO</Text>
-        <Text style={[styles.introLogoSubtitle, { fontSize: 12, marginBottom: 30 }]}>El multiverso necesita un campeón</Text>
-
-        <View style={{ flexDirection: 'column', width: '90%', maxWidth: 400, gap: 16 }}>
-          {HERO_CLASSES.map((hero) => (
-            <TouchableOpacity
-              key={hero.id}
-              activeOpacity={0.8}
-              onPress={() => {
-                playSfx('cardPlay');
-                setSelectedClassId(hero.id);
-                // Inicializar stats según héroe
-                setPlayerDecks(prev => {
-                  const newDecks = [...prev];
-                  newDecks[0] = { id: 1, name: `Mazo de ${hero.name}`, cards: [...hero.startDeck] };
-                  return newDecks;
-                });
-                setCollection(Array.from(new Set([...hero.startDeck, 'c4', 'c5', 'c6', 'c10']))); // Base collection
-                setRelics([hero.relic]); // Asignar la reliquia de clase base
-                
-                changeGameState('oracle_blessing');
-              }}
-              style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                borderRadius: 16,
-                borderWidth: 1.5,
-                borderColor: hero.color,
-                padding: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                shadowColor: hero.color,
-                shadowOffset: { width: 0, height: 4 },
-                shadowRadius: 15,
-                shadowOpacity: 0.4,
-              }}
-            >
-              <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: hero.color, marginRight: 16 }}>
-                <Text style={{ fontSize: 32 }}>{hero.emoji}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 18, fontFamily: FONT_TITLE, fontWeight: 'bold', marginBottom: 4 }}>{hero.name}</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: FONT_UI, marginBottom: 8, lineHeight: 14 }}>{hero.desc}</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 10, fontFamily: FONT_HUD, fontWeight: 'bold' }}>❤️ {hero.startHp}</Text>
-                  <Text style={{ color: '#3b82f6', fontSize: 10, fontFamily: FONT_HUD, fontWeight: 'bold' }}>🛡️ {hero.startShield}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </SafeAreaView>
+      <HeroSelectionScreen 
+        onSelect={(hero) => {
+          playSfx('cardPlay');
+          setSelectedClassId(hero.id);
+          setPlayerDecks([
+            { id: 1, name: `Mazo de ${hero.name}`, cards: [...hero.startDeck] },
+            { id: 2, name: `Personalizado 1`, cards: [...hero.startDeck] },
+            { id: 3, name: `Personalizado 2`, cards: [...hero.startDeck] },
+            { id: 4, name: `Personalizado 3`, cards: [...hero.startDeck] },
+            { id: 5, name: `Personalizado 4`, cards: [...hero.startDeck] },
+          ]);
+          setActiveDeckIndex(0);
+          setCollection(Array.from(new Set([...hero.startDeck, 'c4', 'c5', 'c6', 'c10'])));
+          setRelics([hero.relic]);
+          changeGameState('oracle_blessing');
+        }}
+        screenTransitionAnim={screenTransitionAnim}
+      />
     );
   }
 
@@ -2652,13 +2926,25 @@ export default function App() {
   }
 
   // ============================================================
+  //  INTERFAZ: TRANSICIÓN DE ACTO (LORE SCREEN)
+  // ============================================================
+  if (gameState === 'act_transition') {
+    return (
+      <ActTransitionScreen 
+        worldIndex={currentWorldIndex}
+        onComplete={() => changeGameState('level_selection')} 
+      />
+    );
+  }
+
+  // ============================================================
   //  INTERFAZ: SELECCIÓN DE NIVELES (OVERWORLD)
   // ============================================================
   if (gameState === 'level_selection') {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0f' }}>
+      <View style={{ flex: 1, backgroundColor: '#0f0a05' }}>
         <Image source={require('./assets/world_map_3d.png')} style={[StyleSheet.absoluteFillObject, { transform: [{ scale: 1.25 }] }]} resizeMode="cover" />
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} pointerEvents="none" />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(15,10,10,0.85)' }]} pointerEvents="none" />
         
         <SafeAreaView style={{ flex: 1 }}>
           <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
@@ -2712,27 +2998,32 @@ export default function App() {
                         
                         const isPathActive = isCompleted && (completedNodes.includes(nextId) || currentNodeId === nextId);
 
+                        // En Slay the Spire las líneas son punteadas, aquí usamos una vista sutil
                         return (
                           <View 
                             key={`line_${node.id}_${nextId}`}
                             style={{
                               position: 'absolute',
                               width: length,
-                              height: 3,
-                              backgroundColor: isPathActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.15)',
-                              top: 30 + dy / 2 - 1.5,
+                              height: 2,
+                              backgroundColor: isPathActive ? 'rgba(255,255,255,0.8)' : 'rgba(255, 255, 255, 0.15)',
+                              top: 30 + dy / 2 - 1,
                               left: dx / 2 - length / 2,
                               transform: [{ rotate: `${angle}deg` }],
                               zIndex: -1,
-                              shadowColor: isPathActive ? '#3b82f6' : 'transparent',
+                              shadowColor: isPathActive ? '#fff' : 'transparent',
                               shadowRadius: 5,
-                              shadowOpacity: 0.8,
-                              elevation: isPathActive ? 5 : 0
+                              shadowOpacity: 0.5,
+                              elevation: isPathActive ? 2 : 0
                             }} 
                           />
                         );
                       });
                     };
+
+                    // Determinar el resplandor de selección (Halo)
+                    const showHalo = isCurrent || isPlayable;
+                    const haloColor = isCurrent ? '#fbbf24' : (isPlayable ? '#22c55e' : 'transparent');
 
                     return (
                       <View key={node.id} style={{ alignItems: 'center', zIndex: 10 }}>
@@ -2743,28 +3034,37 @@ export default function App() {
                           disabled={isLocked && !isCompleted && !isCurrent}
                           onPress={() => handleNodeSelect(node)}
                           activeOpacity={0.8}
-                          style={[
-                            styles.mapNodeCircle,
-                            { borderColor: isCompleted ? '#22c55e' : getColor(node.type), backgroundColor: 'rgba(20,20,30,0.9)' },
-                            isCurrent && styles.mapNodeCurrent,
-                            isLocked && { opacity: 0.4, borderColor: '#334155', backgroundColor: '#000' }
-                          ]}
+                          style={{
+                            width: 60, height: 60,
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: isLocked ? 0.3 : 1,
+                          }}
                         >
-                          <Text style={styles.mapNodeEmoji}>
+                          {/* Halo de selección estilo Slay the Spire */}
+                          {showHalo && (
+                            <View style={{
+                              position: 'absolute', width: 68, height: 68, borderRadius: 34,
+                              borderWidth: 2, borderColor: haloColor, borderStyle: 'dashed',
+                              opacity: 0.8,
+                              backgroundColor: isCurrent ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)'
+                            }} />
+                          )}
+                          
+                          <Text style={{
+                            fontSize: node.type === 'boss' ? 50 : 38,
+                            textShadowColor: isCompleted ? '#22c55e' : getColor(node.type),
+                            textShadowOffset: { width: 0, height: 0 },
+                            textShadowRadius: showHalo ? 15 : 5,
+                          }}>
                             {isCompleted ? '✓' : getEmoji(node.type)}
                           </Text>
+                          
                           {isLocked && (
-                            <View style={{ position: 'absolute', right: -5, bottom: -5, backgroundColor: '#000', borderRadius: 10, padding: 2 }}>
+                            <View style={{ position: 'absolute', right: 5, bottom: 5, backgroundColor: '#000', borderRadius: 10, padding: 2 }}>
                               <Text style={{ fontSize: 10 }}>🔒</Text>
                             </View>
                           )}
-                          {isCurrent && <View style={styles.mapNodePing} />}
                         </TouchableOpacity>
-                        
-                        {/* Pequeña etiqueta de texto para saber qué es exactamente si no está bloqueado (o si el usuario quiere leerlo igual) */}
-                        <View style={{ backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, borderRadius: 4, marginTop: 6, borderWidth: 1, borderColor: isLocked ? '#334155' : getColor(node.type) }}>
-                           <Text style={{ color: isLocked ? '#64748b' : '#fff', fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold' }}>{node.type.toUpperCase()}</Text>
-                        </View>
                       </View>
                     );
                   })}
@@ -3394,6 +3694,7 @@ export default function App() {
             } : null}
             flashAnim={enemyFlash}
             emojiOverride={currentWorld.enemyEmoji}
+            image={currentWorld.enemyImage}
             status={enemyStatus}
             bossIntent={bossIntent}
             isHorizontal={true}
@@ -3638,6 +3939,12 @@ export default function App() {
         </View>
 
       </View>
+
+      <CombatTutorialModal 
+        step={tutorialStep} 
+        onNext={() => setTutorialStep(prev => prev >= 4 ? 0 : prev + 1)} 
+        onSkip={() => setTutorialStep(0)} 
+      />
 
       {/* PANTALLA DE VICTORIA ANIMADA */}
       <Modal visible={showVictoryModal} transparent animationType="none">
@@ -4185,40 +4492,41 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   // Rediseño HUD Vertical
+  // Rediseño HUD Vertical
   bossHudSection: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 40,
-    paddingBottom: 5,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 30,
+    paddingBottom: 2,
     backgroundColor: 'rgba(0,0,0,0.4)',
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   playerBottomArea: {
-    paddingBottom: 10,
+    paddingBottom: 5,
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)',
     flexShrink: 0,
-    minHeight: 180,
+    // Eliminado minHeight: 180 para permitir que el tablero se expanda
   },
   playerHudSection: {
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 5,
   },
   combatInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 2, // Reducido para ahorrar espacio
   },
 
   avatarHorizontalContainer: {
     backgroundColor: 'rgba(15,20,30,0.7)',
     borderRadius: 12,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    padding: 8,
+    padding: 6, // Reducido para ahorrar espacio
   },
   avatarFrameHorizontal: {
-    width: 50, height: 50, borderRadius: 25,
+    width: 44, height: 44, borderRadius: 22, // Ligeramente más pequeño
     borderWidth: 2, alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.3)',
   },
@@ -4229,10 +4537,10 @@ const styles = StyleSheet.create({
     color: '#e2e8f0', fontSize: 13, fontWeight: 'bold', marginBottom: 2, letterSpacing: 0.5,
   },
   statsRowHorizontal: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 2,
   },
   barBgHorizontal: {
-    height: 8, backgroundColor: '#1e293b', borderRadius: 4, overflow: 'hidden', width: '100%',
+    height: 6, backgroundColor: '#1e293b', borderRadius: 4, overflow: 'hidden', width: '100%',
   },
 
   boardScene: {
@@ -4252,20 +4560,20 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  handSection: { paddingHorizontal: 16, paddingBottom: 10 },
-  handHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
+  handSection: { paddingHorizontal: 16, paddingBottom: 5 },
+  handHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 4 },
   handTitle: { color: '#94a3b8', fontSize: 9, fontFamily: FONT_HUD, letterSpacing: 1 },
   endTurnBtn: {
     backgroundColor: '#0f172a',
-    paddingHorizontal: 16, paddingVertical: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 10, borderWidth: 1.5, borderColor: '#334155', elevation: 4,
   },
-  endTurnText: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD, letterSpacing: 1 },
+  endTurnText: { color: '#94a3b8', fontSize: 9, fontWeight: 'bold', fontFamily: FONT_HUD, letterSpacing: 1 },
 
-  cardsScroll: { paddingRight: 16, paddingTop: 20, overflow: 'visible' },
+  cardsScroll: { paddingRight: 16, paddingTop: 5, overflow: 'visible' },
   cardContainer: {
-    width: 96,
-    height: 135,
+    width: 90,
+    height: 125, // Reducido para ahorrar espacio vertical
     backgroundColor: 'rgba(10,15,30,0.88)',
     borderRadius: 12, padding: 5, marginRight: 8,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.07)',
@@ -4861,4 +5169,20 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
 });
+
+export default function App() {
+  const [customAlert, setCustomAlert] = useState(null);
+  globalThis.setCustomAlert = setCustomAlert;
+
+  return (
+    <View style={{ flex: 1 }}>
+      <GameApp />
+      <CustomAlertModal 
+        visible={!!customAlert} 
+        message={customAlert?.message} 
+        onConfirm={() => setCustomAlert(null)} 
+      />
+    </View>
+  );
+}
 
