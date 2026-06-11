@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 
 import GameBoard from './src/components/GameBoard';
 import { executeCardEffect } from './src/utils/gameEngine';
@@ -381,7 +382,7 @@ const HERO_CLASSES = [
 
 const SCREEN_W = Dimensions.get('window').width;
 const SCREEN_H = Dimensions.get('window').height;
-const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.355, 300);
+const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.32, 280);
 
 
 // ============================================================
@@ -2778,6 +2779,106 @@ export default function App() {
   }
 
   // ============================================================
+  //  INTERFAZ: FOGATA (CAMPFIRE)
+  // ============================================================
+  if (gameState === 'campfire') {
+    return (
+      <SafeAreaView style={[styles.selectionRoot, { backgroundColor: '#0f0502' }]}>
+        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
+        <StatusBar barStyle="light-content" backgroundColor="#0f0502" />
+        
+        <View style={{ flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 70, marginBottom: 10, textShadowColor: '#ea580c', textShadowRadius: 30 }}>🏕️</Text>
+          <Text style={{ color: '#fbbf24', fontSize: 32, fontFamily: FONT_TITLE, fontWeight: 'bold', marginBottom: 8 }}>FOGATA</Text>
+          
+          {!isForging ? (
+            <>
+              <Text style={{ color: '#94a3b8', fontSize: 13, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 40 }}>
+                El calor del fuego te reconforta. Tienes tiempo para realizar una acción antes de seguir tu camino.
+              </Text>
+              
+              <View style={{ flexDirection: 'row', gap: 16, width: '100%', justifyContent: 'center' }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    borderWidth: 2, borderColor: '#10b981',
+                    borderRadius: 16, padding: 20, width: '45%', alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    const healAmount = Math.floor(player.maxHp * 0.3);
+                    setPlayer(prev => ({ ...prev, hp: Math.min(prev.maxHp, prev.hp + healAmount) }));
+                    playSfx('victory');
+                    alert(`Te has curado ${healAmount} HP.`);
+                    setCompletedNodes(prev => [...prev, currentNodeId]);
+                    changeGameState('level_selection');
+                  }}
+                >
+                  <Text style={{ fontSize: 40, marginBottom: 10 }}>❤️</Text>
+                  <Text style={{ color: '#10b981', fontSize: 14, fontWeight: 'bold', fontFamily: FONT_TITLE }}>DESCANSAR</Text>
+                  <Text style={{ color: '#a7f3d0', fontSize: 10, textAlign: 'center', marginTop: 4 }}>Cura 30% HP</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    borderWidth: 2, borderColor: '#f59e0b',
+                    borderRadius: 16, padding: 20, width: '45%', alignItems: 'center'
+                  }}
+                  onPress={() => setIsForging(true)}
+                >
+                  <Text style={{ fontSize: 40, marginBottom: 10 }}>🔨</Text>
+                  <Text style={{ color: '#f59e0b', fontSize: 14, fontWeight: 'bold', fontFamily: FONT_TITLE }}>FORJAR</Text>
+                  <Text style={{ color: '#fde68a', fontSize: 10, textAlign: 'center', marginTop: 4 }}>Mejora una carta</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View style={{ flex: 1, width: '100%' }}>
+              <Text style={{ color: '#94a3b8', fontSize: 13, fontFamily: FONT_UI, textAlign: 'center', marginBottom: 20 }}>
+                Selecciona una carta de tu mazo activo para forjarla (+3 Daño/Escudo permanente).
+              </Text>
+              
+              <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
+                  {activeDeck.map(cardId => {
+                    const card = getUpgradedCard(cardId);
+                    if (!card) return null;
+                    return (
+                      <TouchableOpacity
+                        key={`forge_${cardId}`}
+                        style={[styles.deckItemCard, { backgroundColor: 'rgba(20,20,30,0.8)', borderColor: '#f59e0b', width: '48%' }]}
+                        onPress={() => {
+                          setCardUpgrades(prev => ({ ...prev, [cardId]: (prev[cardId] || 0) + 1 }));
+                          playSfx('victory');
+                          alert(`¡[${card.name}] ha sido forjada!`);
+                          setCompletedNodes(prev => [...prev, currentNodeId]);
+                          changeGameState('level_selection');
+                        }}
+                      >
+                        <View style={styles.deckItemHeader}>
+                          <Text style={styles.deckItemEmoji}>{getCardEmoji(card.type)}</Text>
+                          <Text style={styles.deckItemName}>{card.name}</Text>
+                        </View>
+                        <Text style={styles.deckItemType}>{card.type.toUpperCase()}</Text>
+                        <Text style={styles.deckItemDesc}>{card.description}</Text>
+                        <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: 'bold', marginTop: 8 }}>Efecto actual: {card.effectValue}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+              
+              <TouchableOpacity onPress={() => setIsForging(false)} style={{ padding: 16, alignItems: 'center' }}>
+                <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>CANCELAR FORJA</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
   //  INTERFAZ: TIENDA MÍSTICA (SHOP)
   // ============================================================
   if (gameState === 'shop') {
@@ -4143,12 +4244,12 @@ const styles = StyleSheet.create({
   },
   endTurnText: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold', fontFamily: FONT_HUD, letterSpacing: 1 },
 
-  cardsScroll: { paddingRight: 16 },
+  cardsScroll: { paddingRight: 16, paddingTop: 20, overflow: 'visible' },
   cardContainer: {
-    width: 105,
-    height: 155,
+    width: 96,
+    height: 135,
     backgroundColor: 'rgba(10,15,30,0.88)',
-    borderRadius: 12, padding: 6, marginRight: 8,
+    borderRadius: 12, padding: 5, marginRight: 8,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden', elevation: 7,
     shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowRadius: 10, shadowOpacity: 0.5,
@@ -4159,6 +4260,12 @@ const styles = StyleSheet.create({
     shadowColor: '#fbbf24',
     shadowOpacity: 0.9,
     shadowRadius: 18, elevation: 14, borderWidth: 2,
+  },
+  cardSelected: {
+    borderColor: '#a855f7',
+    borderWidth: 2,
+    transform: [{ translateY: -15 }, { scale: 1.05 }],
+    zIndex: 100,
   },
   cardManaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },
   manaPip: { width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
