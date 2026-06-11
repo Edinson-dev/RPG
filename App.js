@@ -518,13 +518,13 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
         isPlayer ? styles.avatarPlayer : styles.avatarEnemy,
         {
           transform: [{ translateX: shakeAnim.interpolate({ inputRange: [-1, 0, 1], outputRange: [-10, 0, 10] }) }],
-          backgroundColor: flashAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['rgba(0,0,0,0)', isPlayer ? 'rgba(251,191,36,0.4)' : 'rgba(239,68,68,0.4)']
-          })
         }
       ]}
     >
+      <Animated.View style={[StyleSheet.absoluteFillObject, { borderRadius: 16, backgroundColor: flashAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(0,0,0,0)', isPlayer ? 'rgba(251,191,36,0.4)' : 'rgba(239,68,68,0.4)']
+      })}]} pointerEvents="none" />
       <View style={[styles.avatarFrame, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
         <Animated.Image 
           source={isPlayer ? require('./assets/player_avatar.png') : require('./assets/boss_avatar.png')}
@@ -1640,27 +1640,27 @@ export default function App() {
       Animated.parallel([
         // Onda expansiva
         Animated.sequence([
-          Animated.timing(shockwaveOpacity, { toValue: 1, duration: 50, useNativeDriver: true }),
+          Animated.timing(shockwaveOpacity, { toValue: 1, duration: 50, useNativeDriver: false }),
           Animated.parallel([
-            Animated.timing(shockwaveAnim, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-            Animated.timing(shockwaveOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+            Animated.timing(shockwaveAnim, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+            Animated.timing(shockwaveOpacity, { toValue: 0, duration: 500, useNativeDriver: false }),
           ]),
         ]),
         // Partículas
         Animated.sequence([
-          Animated.timing(particleOpacity, { toValue: 1, duration: 50, useNativeDriver: true }),
+          Animated.timing(particleOpacity, { toValue: 1, duration: 50, useNativeDriver: false }),
           Animated.parallel([
-            Animated.timing(particle1X, { toValue: (isPlayerAttacking ? 1 : -1) * 35, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle1Y, { toValue: -45, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle2X, { toValue: (isPlayerAttacking ? 1 : -1) * -25, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle2Y, { toValue: -60, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle3X, { toValue: (isPlayerAttacking ? 1 : -1) * 55, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle3Y, { toValue: -30, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle4X, { toValue: (isPlayerAttacking ? 1 : -1) * -45, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle4Y, { toValue: -15, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle5X, { toValue: (isPlayerAttacking ? 1 : -1) * 20, duration: 500, useNativeDriver: true }),
-            Animated.timing(particle5Y, { toValue: -75, duration: 500, useNativeDriver: true }),
-            Animated.timing(particleOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+            Animated.timing(particle1X, { toValue: (isPlayerAttacking ? 1 : -1) * 35, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle1Y, { toValue: -45, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle2X, { toValue: (isPlayerAttacking ? 1 : -1) * -25, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle2Y, { toValue: -60, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle3X, { toValue: (isPlayerAttacking ? 1 : -1) * 55, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle3Y, { toValue: -30, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle4X, { toValue: (isPlayerAttacking ? 1 : -1) * -45, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle4Y, { toValue: -15, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle5X, { toValue: (isPlayerAttacking ? 1 : -1) * 20, duration: 500, useNativeDriver: false }),
+            Animated.timing(particle5Y, { toValue: -75, duration: 500, useNativeDriver: false }),
+            Animated.timing(particleOpacity, { toValue: 0, duration: 500, useNativeDriver: false }),
           ]),
         ]),
       ]).start(() => {
@@ -2397,7 +2397,7 @@ export default function App() {
           >
             <Text style={styles.introStartBtnText}>⚡ INICIAR AVENTURA</Text>
           </TouchableOpacity>
-          <Text style={styles.introVersionText}>v1.0 — RPG Match-3 Cards</Text>
+          <Text style={styles.introVersionText}>v1.1.0 — RPG Match-3 Cards</Text>
         </Animated.View>
       </SafeAreaView>
     );
@@ -3481,6 +3481,24 @@ export default function App() {
           }]} pointerEvents="none">
             <View style={[styles.spellCore, { backgroundColor: activeSpellColor }]} />
           </Animated.View>
+
+          {/* === PARTÍCULAS E IMPACTO === */}
+          {attackVfx && (
+            <Animated.View style={{ position: 'absolute', alignSelf: 'center', top: attackVfx.fromPlayer ? 100 : 'auto', bottom: attackVfx.fromPlayer ? 'auto' : 300, opacity: shockwaveOpacity, transform: [{ scale: shockwaveAnim }] }} pointerEvents="none">
+              <View style={{ width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: attackVfx.color }} />
+            </Animated.View>
+          )}
+          {attackVfx && [1,2,3,4,5].map(i => {
+            const px = i === 1 ? particle1X : i === 2 ? particle2X : i === 3 ? particle3X : i === 4 ? particle4X : particle5X;
+            const py = i === 1 ? particle1Y : i === 2 ? particle2Y : i === 3 ? particle3Y : i === 4 ? particle4Y : particle5Y;
+            return (
+              <Animated.View key={`p_${i}`} style={{
+                position: 'absolute', alignSelf: 'center', top: attackVfx.fromPlayer ? 100 : 'auto', bottom: attackVfx.fromPlayer ? 'auto' : 300,
+                width: 8, height: 8, borderRadius: 4, backgroundColor: attackVfx.color, opacity: particleOpacity,
+                transform: [{ translateX: px }, { translateY: py }]
+              }} pointerEvents="none" />
+            )
+          })}
         </View>
 
         {/* HUD INFERIOR Y CARTAS: JUGADOR */}
