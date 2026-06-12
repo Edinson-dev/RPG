@@ -115,6 +115,16 @@ const CARDS_POOL = {
 };
 
 // ============================================================
+//  BASE DE DATOS DE CARTAS DE FUSIÓN (Exclusivo Jefes)
+// ============================================================
+const FUSION_CARDS = {
+  f_attack: { id: 'f_attack', name: 'Dragón Definitivo', type: 'Ataque', effectValue: 120, description: 'Fusión de puro poder ofensivo. Inflige 120 de daño inmediato.', totalCost: 0, image: require('./assets/red_dragon.png') },
+  f_defend: { id: 'f_defend', name: 'Castillo Milenario', type: 'Defensa', effectValue: 150, description: 'Defensa absoluta e impenetrable. Otorga 150 de escudo.', totalCost: 0, image: require('./assets/golem.png') },
+  f_spell: { id: 'f_spell', name: 'Exodia Elemental', type: 'Hechizo', effectValue: 180, description: 'El hechicero prohibido desata 180 de daño mágico directo.', totalCost: 0, image: require('./assets/volt_illusionist.png') },
+  f_mixed: { id: 'f_mixed', name: 'Quimera Arcana', type: 'Ataque', effectValue: 80, description: 'Bestia caótica que causa 80 de daño y te cura 30 HP.', totalCost: 0, image: require('./assets/ash_phoenix.png') }
+};
+
+// ============================================================
 //  BASE DE DATOS DE RELIQUIAS Y POCIONES
 // ============================================================
 const RELICS_POOL = {
@@ -353,7 +363,7 @@ const HERO_CLASSES = [
     desc: 'Maestro del fuego. Inicia con poca vida pero un mazo devastador.',
     startHp: 75,
     startShield: 10,
-    startDeck: ['c1', 'c3', 'c47'], // 3 cartas: Ataques de fuego
+    startDeck: ['c1', 'c3', 'c4', 'c5', 'c47'], // 5 cartas: Ataques de fuego y magia
     relic: 'r_mage',
     image: require('./assets/hero_pyromancer.png')
   },
@@ -365,7 +375,7 @@ const HERO_CLASSES = [
     desc: 'Guerrero sagrado. Alta vitalidad y defensas impenetrables.',
     startHp: 120,
     startShield: 30,
-    startDeck: ['c2', 'c10', 'c11'], // 3 cartas: Escudos y golpes
+    startDeck: ['c2', 'c6', 'c10', 'c11', 'c17'], // 5 cartas: Escudos y golpes
     relic: 'r_paladin',
     image: require('./assets/hero_paladin.png')
   },
@@ -377,7 +387,7 @@ const HERO_CLASSES = [
     desc: 'Letal y rápido. Mazo enfocado en veneno continuo.',
     startHp: 90,
     startShield: 15,
-    startDeck: ['c14', 'c42', 'c60'], // 3 cartas: Letales
+    startDeck: ['c14', 'c16', 'c29', 'c42', 'c60'], // 5 cartas: Letales
     relic: 'r_assassin',
     image: require('./assets/hero_assassin.png')
   }
@@ -391,7 +401,7 @@ const BOARD_WIDTH = Math.min(SCREEN_W - 32, SCREEN_H * 0.32, 280);
 // ============================================================
 //  COMPONENTE AUXILIAR: AvatarCard (con barras animadas)
 // ============================================================
-function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, image, status, bossIntent, isHorizontal = false }) {
+function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shakeAnim, floatingDamage, flashAnim, emojiOverride, image, status, bossIntent, isHorizontal = false, isBossMode = false }) {
   const barColor = isPlayer ? '#10b981' : '#e11d48';
   const emoji = emojiOverride || (isPlayer ? '\uD83D\uDC32' : '\uD83E\uDD16');
 
@@ -446,18 +456,30 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
       >
         <View style={{ flexDirection: isPlayer ? 'row' : 'row-reverse', alignItems: 'center', width: '100%' }}>
           {/* Avatar Area */}
-          <View style={[styles.avatarFrameHorizontal, isPlayer ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } : { borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.05)' }]}>
+          <View style={[
+            styles.avatarFrameHorizontal, 
+            isPlayer 
+              ? { borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)' } 
+              : { 
+                  borderColor: isBossMode ? '#9f1239' : '#e11d48', 
+                  backgroundColor: 'rgba(225,29,72,0.05)',
+                  borderWidth: isBossMode ? 3 : 2,
+                  width: isBossMode ? 80 : 60,
+                  height: isBossMode ? 80 : 60,
+                  borderRadius: isBossMode ? 40 : 30
+                }
+          ]}>
             <Animated.View style={{
                 transform: [
                   { translateY: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [-3, 3] }) },
                   { scale: idleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] }) }
                 ],
-                width: 50, height: 50, alignItems: 'center', justifyContent: 'center'
+                width: isBossMode ? 70 : 50, height: isBossMode ? 70 : 50, alignItems: 'center', justifyContent: 'center'
             }}>
               {image ? (
-                <Image source={typeof image === 'number' ? image : { uri: image }} style={{ width: '100%', height: '100%', borderRadius: 25 }} resizeMode="cover" />
+                <Image source={typeof image === 'number' ? image : { uri: image }} style={{ width: '100%', height: '100%', borderRadius: isBossMode ? 35 : 25 }} resizeMode="cover" />
               ) : (
-                <Text style={{ fontSize: 36 }}>{emoji}</Text>
+                <Text style={{ fontSize: isBossMode ? 50 : 36 }}>{emoji}</Text>
               )}
             </Animated.View>
             {floatingDamage && (
@@ -479,11 +501,11 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
           {/* Info Area */}
           <View style={[styles.avatarInfoHorizontal, isPlayer ? { marginLeft: 12 } : { marginRight: 12, alignItems: 'flex-end' }]}>
             <View style={[styles.statsRowHorizontal, isPlayer ? { justifyContent: 'flex-start' } : { justifyContent: 'flex-end' }]}>
-              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13, marginRight: isPlayer ? 10 : 0, marginLeft: isPlayer ? 0 : 10 }]}>❤️ {Math.ceil(hp)}</Text>
-              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: 13 }]}>🛡️ {Math.ceil(shield)}</Text>
+              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: isBossMode ? 16 : 13, marginRight: isPlayer ? 10 : 0, marginLeft: isPlayer ? 0 : 10 }]}>❤️ {Math.ceil(hp)}</Text>
+              <Text style={[styles.statText, { fontFamily: FONT_HUD, fontSize: isBossMode ? 16 : 13 }]}>🛡️ {Math.ceil(shield)}</Text>
             </View>
 
-            <View style={styles.barBgHorizontal}>
+            <View style={[styles.barBgHorizontal, isBossMode && { height: 16, width: 200, borderWidth: 2, borderColor: '#4c0519' }]}>
               <Animated.View style={[styles.barFill, { width: hpPercent, backgroundColor: barColorAnim }]} />
               <Animated.View style={[styles.barGlow, { width: hpPercent, backgroundColor: barColorAnim, opacity: 0.4 }]} />
             </View>
@@ -506,7 +528,8 @@ function AvatarCard({ name, isPlayer, hp, maxHp, shield, energy, maxEnergy, shak
                     {bossIntent.type === 'attack' ? '⚔️' :
                      bossIntent.type === 'defend' ? '🛡️' :
                      bossIntent.type === 'heal' ? '💚' :
-                     bossIntent.type === 'debuff' ? '🧪' : '⚡'} {bossIntent.desc}
+                     bossIntent.type === 'debuff' ? '🧪' :
+                     bossIntent.type === 'enrage' ? '⚠️' : '⚡'} {bossIntent.desc}
                   </Text>
                 </View>
               </View>
@@ -803,37 +826,63 @@ const getRarityColor = (rarity) => ({
 
 const generateProceduralMap = (worldId) => {
   const map = [];
-  map[4] = [{ id: 'f4_1', type: 'boss', next: [] }];
+  // Piso 7: Boss
+  map[7] = [{ id: 'f7_1', type: 'boss', next: [] }];
   
-  const f3Types = ['campfire', 'shop', 'elite'];
-  map[3] = [
-    { id: 'f3_1', type: f3Types[Math.floor(Math.random() * f3Types.length)], next: ['f4_1'] },
-    { id: 'f3_2', type: f3Types[Math.floor(Math.random() * f3Types.length)], next: ['f4_1'] }
-  ];
-
-  const randomType = () => {
+  const randomType = (probs) => {
     const r = Math.random();
-    if (r < 0.40) return 'combat';
-    if (r < 0.55) return 'elite';
-    if (r < 0.70) return 'shop';
-    if (r < 0.85) return 'event';
-    return 'campfire';
+    let cumulative = 0;
+    for (const [type, prob] of Object.entries(probs)) {
+      cumulative += prob;
+      if (r < cumulative) return type;
+    }
+    return 'combat';
   };
 
-  map[2] = [
-    { id: 'f2_1', type: randomType(), next: ['f3_1'] },
-    { id: 'f2_2', type: randomType(), next: ['f3_1', 'f3_2'] },
-    { id: 'f2_3', type: randomType(), next: ['f3_2'] }
+  // Piso 6: Descanso / Tienda Final antes del Jefe
+  map[6] = [
+    { id: 'f6_1', type: randomType({ shop: 0.5, campfire: 0.5 }), next: ['f7_1'] },
+    { id: 'f6_2', type: randomType({ shop: 0.5, campfire: 0.5 }), next: ['f7_1'] },
+    { id: 'f6_3', type: randomType({ shop: 0.5, campfire: 0.5 }), next: ['f7_1'] }
   ];
 
+  // Piso 5: Gran Desafío (Élite o Evento Raro)
+  map[5] = [
+    { id: 'f5_1', type: randomType({ elite: 0.7, event: 0.3 }), next: ['f6_1', 'f6_2'] },
+    { id: 'f5_2', type: randomType({ elite: 0.7, combat: 0.3 }), next: ['f6_2', 'f6_3'] },
+  ];
+
+  // Piso 4: Nivel medio (Combate, Evento)
+  map[4] = [
+    { id: 'f4_1', type: randomType({ combat: 0.6, event: 0.4 }), next: ['f5_1'] },
+    { id: 'f4_2', type: randomType({ combat: 0.6, event: 0.4 }), next: ['f5_1', 'f5_2'] },
+    { id: 'f4_3', type: randomType({ combat: 0.6, event: 0.4 }), next: ['f5_2'] },
+  ];
+
+  // Piso 3: Descanso temprano o Élite
+  map[3] = [
+    { id: 'f3_1', type: randomType({ campfire: 0.4, elite: 0.4, shop: 0.2 }), next: ['f4_1', 'f4_2'] },
+    { id: 'f3_2', type: randomType({ campfire: 0.4, elite: 0.4, shop: 0.2 }), next: ['f4_2', 'f4_3'] },
+  ];
+
+  // Piso 2: Combate / Evento
+  map[2] = [
+    { id: 'f2_1', type: randomType({ combat: 0.7, event: 0.3 }), next: ['f3_1'] },
+    { id: 'f2_2', type: randomType({ combat: 0.7, event: 0.3 }), next: ['f3_1', 'f3_2'] },
+    { id: 'f2_3', type: randomType({ combat: 0.7, event: 0.3 }), next: ['f3_2'] },
+  ];
+
+  // Piso 1: Primeros Combates
   map[1] = [
     { id: 'f1_1', type: 'combat', next: ['f2_1', 'f2_2'] },
     { id: 'f1_2', type: 'combat', next: ['f2_2', 'f2_3'] }
   ];
 
+  // Piso 0: Salidas Múltiples
   map[0] = [
     { id: 'f0_1', type: 'start', next: ['f1_1'] },
-    { id: 'f0_2', type: 'start', next: ['f1_2'] }
+    { id: 'f0_2', type: 'start', next: ['f1_1', 'f1_2'] },
+    { id: 'f0_3', type: 'start', next: ['f1_2'] }
   ];
 
   return map;
@@ -1285,6 +1334,11 @@ function GameApp() {
   const [currentEventId, setCurrentEventId] = useState(null);
   const [completedNodes, setCompletedNodes] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState(null);
+  const mapScrollRef = useRef(null);
+  
+  // Botín Elemental (Draft)
+  const [bossLootCards, setBossLootCards] = useState([]);
+  const [selectedLootIndices, setSelectedLootIndices] = useState([]);
 
   useEffect(() => {
     if (actMap.length === 0) {
@@ -1486,6 +1540,7 @@ function GameApp() {
   // Estados alterados del combate
   const [playerStatus, setPlayerStatus] = useState(null); // null | { type: 'Quemado' | 'Congelado' | 'Envenenado', duration: number }
   const [enemyStatus, setEnemyStatus] = useState(null); // null | { type: 'Quemado' | 'Congelado' | 'Envenenado', duration: number }
+  const [lastCardPlayed, setLastCardPlayed] = useState(null); // Tracks the last card played in the current turn
 
   // Mensaje flotante de combos
   const [comboMsg, setComboMsg] = useState(null);
@@ -1594,6 +1649,9 @@ function GameApp() {
   const [specialOfferId, setSpecialOfferId] = useState(null);
   const [specialOfferDiscount, setSpecialOfferDiscount] = useState(0);
   const [isCriticalDamage, setIsCriticalDamage] = useState(false);
+  const [merchantDialogue, setMerchantDialogue] = useState('Saludos, viajero. ¿Tienes oro para pagar mis rarezas?');
+  const [isFusionMode, setIsFusionMode] = useState(false);
+  const [fusionSelection, setFusionSelection] = useState([]);
 
   const refreshSpecialOffer = () => {
     const shopCards = Object.values(CARDS_POOL).filter(c => c.price);
@@ -1804,32 +1862,42 @@ function GameApp() {
   }, []);
 
   // --- COMPRAR ÍTEM EN LA TIENDA ---
-  const handleBuyItem = (item) => {
-    const price = item.price || 150;
+  const handleBuyItem = (item, discountPrice = null) => {
+    const price = discountPrice !== null ? discountPrice : (item.price || 150);
     if (gold < price) {
-      alert('¡No tienes suficiente oro!');
+      setMerchantDialogue('¿Intentas estafarme? Vuelve cuando tengas más oro.');
       return;
     }
 
     if (item.id.startsWith('c')) {
-      if (collection.includes(item.id)) return alert('Ya tienes esta carta.');
+      if (collection.includes(item.id)) {
+        setMerchantDialogue('Ya tienes este pergamino, viajero. Busca otro.');
+        return;
+      }
       setCollection(prev => {
         if (prev.includes(item.id)) return prev;
         return [...prev, item.id];
       });
     } else if (item.id.startsWith('r')) {
-      if (relics.includes(item.id)) return alert('Ya tienes esta reliquia.');
+      if (relics.includes(item.id)) {
+        setMerchantDialogue('¿Otra vez? Ya llevas esa reliquia contigo.');
+        return;
+      }
       setRelics(prev => {
         if (prev.includes(item.id)) return prev;
         return [...prev, item.id];
       });
     } else if (item.id.startsWith('p')) {
-      if (potions.length >= 3) return alert('No tienes espacio para más pociones.');
+      if (potions.length >= 3) {
+        setMerchantDialogue('Tus bolsillos están llenos. Usa una poción antes de comprar más.');
+        return;
+      }
       setPotions(prev => [...prev, item.id]);
     }
 
     setGold(prev => prev - price);
     playSfx('victory');
+    setMerchantDialogue('¡Excelente elección! El poder tiene su precio, y tú lo has pagado.');
     if (Platform.OS !== 'web') Vibration.vibrate(100);
   };
 
@@ -1840,9 +1908,9 @@ function GameApp() {
       if (activeDeck.length === 1) return;
       setActiveDeck(prev => prev.filter(id => id !== cardId));
     } else {
-      // Añadir (Máximo 3)
-      if (activeDeck.length >= 3) {
-        alert('Solo puedes equipar hasta 3 cartas.');
+      // Añadir (Máximo 5)
+      if (activeDeck.length >= 5) {
+        alert('Solo puedes equipar hasta 5 cartas.');
         return;
       }
       setActiveDeck(prev => [...prev, cardId]);
@@ -1852,8 +1920,8 @@ function GameApp() {
   // --- INICIAR COMBATE EN UN MUNDO ---
   const handleSelectWorld = (index, forceUnlock = false) => {
     if (!forceUnlock && WORLDS[index].id > maxUnlockedWorld) return;
-    if (activeDeck.length !== 3) {
-      alert('Debes tener exactamente 3 cartas equipadas en tu mazo activo para combatir.');
+    if (activeDeck.length !== 5) {
+      alert('Debes tener exactamente 5 cartas equipadas en tu mazo activo para combatir.');
       changeGameState('deck_management');
       return;
     }
@@ -2059,12 +2127,14 @@ function GameApp() {
         triggerFloatingDamage(true, `-${totalDamageReceived}`, 'Ataque');
         if (updatedPlayer.hp <= 0) return;
         setActionPoints(3);
+        setLastCardPlayed(null);
         setTurn('player');
       });
     } else {
       setPlayer(updatedPlayer);
       setEnemy(updatedEnemy);
       setActionPoints(3);
+      setLastCardPlayed(null);
       setTurn('player');
     }
   }, [player, enemy, currentWorld]);
@@ -2246,12 +2316,50 @@ function GameApp() {
     }
   }, [turn, actionPoints]);
 
+  // --- LÓGICA: FUSIÓN MÍSTICA (Yu-Gi-Oh) ---
+  const handleFusion = (selection) => {
+    if (selection.length !== 2) return;
+    
+    const [sel1, sel2] = selection;
+    const type1 = sel1.card.type;
+    const type2 = sel2.card.type;
+
+    let fusionResultId = 'f_mixed';
+    if (type1 === 'Ataque' && type2 === 'Ataque') fusionResultId = 'f_attack';
+    else if (type1 === 'Defensa' && type2 === 'Defensa') fusionResultId = 'f_defend';
+    else if (type1 === 'Hechizo' && type2 === 'Hechizo') fusionResultId = 'f_spell';
+
+    const fusionCardData = { ...FUSION_CARDS[fusionResultId], charge: 0, instanceId: `fusion_${Date.now()}` };
+
+    setHand(prev => {
+      const nextHand = [...prev];
+      // Eliminar de atrás hacia adelante para no arruinar los índices
+      const idxToRem = [sel1.index, sel2.index].sort((a, b) => b - a);
+      idxToRem.forEach(idx => nextHand.splice(idx, 1));
+      
+      // Añadir la carta de fusión
+      nextHand.push(fusionCardData);
+      return nextHand;
+    });
+
+    playSfx('victory');
+    triggerComboVfx('🌀 ¡FUSIÓN MÍSTICA! 🌀');
+    setCombatLog(`🌀 Has fusionado ${sel1.card.name} y ${sel2.card.name} para invocar a ${fusionCardData.name}.`);
+    
+    setIsFusionMode(false);
+    setFusionSelection([]);
+  };
+
   // --- LÓGICA: JUGAR CARTA DE LA MANO ---
   const handlePlayCard = useCallback((card) => {
     if (turn !== 'player') return;
     
-    if (actionPoints <= 0) {
-      setCombatLog('⚠️ No te quedan Puntos de Acción (PA) para lanzar cartas.');
+    // Sinergia 2: Cartas de Cadena (Reducción de Costo)
+    const isChainAttack = lastCardPlayed?.type === 'Defensa' && card.type === 'Ataque';
+    const cardCost = isChainAttack ? 0 : 1;
+
+    if (actionPoints < cardCost) {
+      setCombatLog('⚠️ No te quedan Puntos de Acción (PA) para lanzar esta carta.');
       return;
     }
 
@@ -2260,33 +2368,94 @@ function GameApp() {
       return;
     }
 
-    // Consumir 1 PA y sonar
+    // Consumir PA
     playSfx('cardPlay');
-    const newPA = actionPoints - 1;
+    const newPA = actionPoints - cardCost;
     setActionPoints(newPA);
+
+    let dmgMultiplier = 1;
+    let flatBonus = 0;
+    let extraComboMsg = null;
+    let statusToRemove = null;
+
+    const cardElement = Object.keys(card.manaCost || {})[0];
+    const lastElement = lastCardPlayed ? Object.keys(lastCardPlayed.manaCost || {})[0] : null;
+
+    // Sinergia 1: Combos Elementales
+    if (lastElement === 'blue' && cardElement === 'yellow') {
+      extraComboMsg = '⚡ ¡Tormenta Eléctrica! (+10 Daño/Escudo)';
+      flatBonus += 10;
+    } else if (lastElement === 'green' && cardElement === 'red') {
+      extraComboMsg = '🌋 ¡Explosión Volcánica! (x1.5 Daño/Escudo)';
+      dmgMultiplier += 0.5;
+    }
+
+    // Sinergia 3: Marcas Elementales
+    if (enemyStatus?.type === 'Quemado' && cardElement === 'green') {
+      extraComboMsg = '💥 ¡GOLPE TÉRMICO! (x2 Daño/Escudo)';
+      dmgMultiplier += 1.0;
+      statusToRemove = 'Quemado';
+    } else if (enemyStatus?.type === 'Congelado' && card.type === 'Ataque') {
+      extraComboMsg = '🧊 ¡ROMPEHIELO! (x1.5 Daño/Escudo)';
+      dmgMultiplier += 0.5;
+      statusToRemove = 'Congelado';
+    }
+
+    // Sinergia 4: Sacrificio Cósmico
+    let sacrificeCount = 0;
+    if (cardElement === 'purple') {
+      hand.forEach(c => {
+        if (c.id !== card.id && c.charge > 0) sacrificeCount++;
+      });
+      if (sacrificeCount > 0) {
+        extraComboMsg = `🌌 ¡Pacto Oscuro! Devora ${sacrificeCount} maná (+${sacrificeCount * 5})`;
+        flatBonus += (sacrificeCount * 5);
+      }
+    }
+
+    const modifiedCard = { 
+      ...card, 
+      effectValue: Math.floor((card.effectValue + flatBonus) * dmgMultiplier) 
+    };
 
     const oldEnemyHp = enemy.hp;
     const oldEnemyShield = enemy.shield;
 
-    // Ejecutar el efecto de la carta (Cap a 100 de escudo manejado en gameEngine)
-    const { newPlayerState, newEnemyState } = executeCardEffect(card, player, enemy);
+    // Ejecutar el efecto de la carta con los valores modificados
+    const { newPlayerState, newEnemyState } = executeCardEffect(modifiedCard, player, enemy);
 
-    setHand(prevHand => prevHand.map(c => c.id === card.id ? { ...c, charge: 0 } : c));
+    // Limpiar maná de la carta usada y aplicar el sacrificio
+    setHand(prevHand => prevHand.map(c => {
+      if (c.id === card.id) return { ...c, charge: 0 };
+      if (cardElement === 'purple' && c.charge > 0) return { ...c, charge: c.charge - 1 };
+      return c;
+    }));
     setSelectedHandIndex(null);
+    setLastCardPlayed(card);
 
-    // Aplicar estados alterados según el id/elemento de la carta
-    if (['c1', 'c8', 'c14', 'c23', 'c26'].includes(card.id)) {
-      setEnemyStatus({ type: 'Quemado', duration: 2 });
-    } else if (['c4', 'c11', 'c20', 'c22', 'c30'].includes(card.id)) {
-      setEnemyStatus({ type: 'Congelado', duration: 2 });
-    } else if (['c5', 'c17', 'c19', 'c27'].includes(card.id)) {
-      setEnemyStatus({ type: 'Envenenado', duration: 2 });
+    if (extraComboMsg) {
+      triggerComboVfx(extraComboMsg);
     }
 
-    let log = `⚔️ Lanzas [${card.name}] (-1 PA). `;
-    if (card.type === 'Ataque') log += `Inflige ${card.effectValue} de daño.`;
-    if (card.type === 'Defensa') log += `Ganas +${card.effectValue} de escudo.`;
-    if (card.type === 'Hechizo') log += `Dmg mágico directo de ${card.effectValue}.`;
+    // Remover estado consumido
+    if (statusToRemove && enemyStatus?.type === statusToRemove) {
+      setEnemyStatus(null);
+    } else {
+      // Aplicar nuevos estados alterados si no consumimos uno
+      if (['c1', 'c8', 'c14', 'c23', 'c26'].includes(card.id)) {
+        setEnemyStatus({ type: 'Quemado', duration: 2 });
+      } else if (['c4', 'c11', 'c20', 'c22', 'c30'].includes(card.id)) {
+        setEnemyStatus({ type: 'Congelado', duration: 2 });
+      } else if (['c5', 'c17', 'c19', 'c27'].includes(card.id)) {
+        setEnemyStatus({ type: 'Envenenado', duration: 2 });
+      }
+    }
+
+    let log = `⚔️ Lanzas [${card.name}] (-${cardCost} PA). `;
+    if (card.type === 'Ataque') log += `Inflige ${modifiedCard.effectValue} de daño.`;
+    if (card.type === 'Defensa') log += `Ganas +${modifiedCard.effectValue} de escudo.`;
+    if (card.type === 'Hechizo') log += `Dmg mágico directo de ${modifiedCard.effectValue}.`;
+    if (isChainAttack) log += ` ¡Costo 0 por Contraataque!`;
     setCombatLog(log);
 
     const finishCardPlay = () => {
@@ -2294,7 +2463,7 @@ function GameApp() {
       setEnemy(newEnemyState);
 
       if (card.type === 'Defensa') {
-        triggerFloatingDamage(true, `+${card.effectValue}`, 'Defensa');
+        triggerFloatingDamage(true, `+${modifiedCard.effectValue}`, 'Defensa');
       } else {
         const totalDamageDone = (oldEnemyHp + oldEnemyShield) - (newEnemyState.hp + (newEnemyState.shield || 0));
         const unblockedDamage = oldEnemyHp - newEnemyState.hp;
@@ -2304,7 +2473,7 @@ function GameApp() {
           triggerFloatingDamage(false, `-${totalDamageDone}`, card.type);
         }
 
-        // Reliquia Mago: Vampirismo (10% curación del daño a la vida del enemigo)
+        // Reliquia Mago: Vampirismo
         if (unblockedDamage > 0 && relics.includes('r_mage')) {
           const healAmount = Math.max(1, Math.floor(unblockedDamage * 0.1));
           newPlayerState.hp = Math.min(newPlayerState.maxHp, newPlayerState.hp + healAmount);
@@ -2324,7 +2493,7 @@ function GameApp() {
     } else {
       finishCardPlay();
     }
-  }, [turn, player, enemy, actionPoints, triggerVictoryAnimation]);
+  }, [turn, player, enemy, actionPoints, hand, lastCardPlayed, enemyStatus, triggerVictoryAnimation]);
 
   // --- LÓGICA: USAR POCIÓN EN COMBATE ---
   const handleUsePotion = useCallback((potionId, index) => {
@@ -2419,9 +2588,36 @@ function GameApp() {
         setCompletedNodes([]);
       }
       
+      // Generar Botín Elemental
+      const actWorld = WORLDS[currentWorldIndex % WORLDS.length];
+      const worldColors = {
+        1: 'red', 2: 'yellow', 3: 'green', 4: 'purple',
+        5: 'purple', 6: 'yellow', 7: 'blue', 8: 'red',
+        9: 'green', 10: 'green'
+      };
+      const preferredColor = worldColors[actWorld.id] || 'blue';
+      
+      const allCards = Object.values(CARDS_POOL);
+      const epicCards = allCards.filter(c => c.price >= 550); // Míticas/Épicas
+      const normalCards = allCards.filter(c => c.price < 550 || !c.price);
+
+      const preferredNormals = normalCards.filter(c => Object.keys(c.manaCost || {})[0] === preferredColor);
+      
+      const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      
+      const draft = [
+        getRandom(epicCards), // Garantizar 1 épica
+        getRandom(preferredNormals.length > 0 ? preferredNormals : normalCards), // 1 del elemento
+        getRandom(normalCards),
+        getRandom(allCards) // Wildcard
+      ];
+
+      setBossLootCards(draft);
+      setSelectedLootIndices([]);
+      
       setShowVictoryModal(false);
       setVictoryPhase('idle');
-      changeGameState('act_transition');
+      changeGameState('boss_loot');
       return;
     }
 
@@ -2506,6 +2702,7 @@ function GameApp() {
       // Start combat setup (like handleSelectWorld does)
       setPlayer({ hp: startHp, maxHp: startMaxHp, shield: startShield });
       setActionPoints(startPA);
+      setLastCardPlayed(null);
       setTurn('player');
       setGrid([]);
       
@@ -2661,40 +2858,59 @@ function GameApp() {
   //  INTERFAZ: PANTALLA DE INTRO ÉPICA
   // ============================================================
   if (gameState === 'intro') {
-    const bgRotDeg = introBgRot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
     return (
       <SafeAreaView style={styles.introRoot}>
-        <Animated.View pointerEvents="none" style={[styles.transitionOverlay, { opacity: screenTransitionAnim }]} />
         <StatusBar barStyle="light-content" backgroundColor="#000" />
+        
+        {/* FONDO ÉPICO GENERADO POR IA */}
+        <Image 
+          source={require('./assets/title_screen_bg.png')} 
+          style={StyleSheet.absoluteFillObject} 
+          resizeMode="cover" 
+        />
+        {/* Overlay oscuro para legibilidad del texto */}
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(5, 5, 10, 0.65)' }]} pointerEvents="none" />
 
-        {/* Fondo giratorio */}
-        <Animated.View style={[styles.introBgWheel, { transform: [{ rotate: bgRotDeg }] }]}>
-          {[...Array(8)].map((_, i) => (
-            <View key={i} style={[styles.introBgRay, { transform: [{ rotate: `${i * 45}deg` }] }]} />
-          ))}
-        </Animated.View>
-
-        {/* Círculo de resplandor central */}
-        <View style={styles.introGlowCircle} />
-
-        {/* Logo principal */}
-        <Animated.View style={[styles.introLogoContainer, {
-          opacity: introLogoOpacity,
-          transform: [{ scale: introLogoScale }]
-        }]}>
-          <Text style={styles.introLogoEmoji}>⚔️</Text>
-          <Text style={styles.introLogoTitle}>REALM</Text>
-          <Text style={styles.introLogoSubtitle}>OF ELEMENTS</Text>
-          <View style={styles.introDivider} />
+        {/* Logo principal: AETHERBOUND */}
+        <Animated.View style={{ opacity: introLogoOpacity, alignItems: 'center' }} pointerEvents="none">
+          <Text style={[styles.introLogoTitle, { 
+            fontFamily: Platform.select({ web: "'Montserrat', 'Helvetica Neue', sans-serif", default: 'sans-serif-light' }),
+            fontWeight: '300',
+            fontSize: 34, 
+            letterSpacing: 10,
+            textAlign: 'center',
+            textShadowColor: 'rgba(192, 132, 252, 0.6)', 
+            textShadowOffset: {width: 0, height: 0}, 
+            textShadowRadius: 15 
+          }]}>
+            AETHERBOUND
+          </Text>
+          <Text style={[styles.introLogoSubtitle, { 
+            fontFamily: Platform.select({ web: "'Inter', 'Helvetica Neue', sans-serif", default: 'sans-serif' }),
+            fontWeight: '400',
+            fontSize: 12, 
+            color: '#e2e8f0', 
+            letterSpacing: 6, 
+            textAlign: 'center',
+            marginTop: 4,
+            textShadowColor: 'rgba(56, 189, 248, 0.6)', 
+            textShadowOffset: {width: 0, height: 0}, 
+            textShadowRadius: 8 
+          }]}>
+            EL CÓDICE DE CRISTAL
+          </Text>
+          <View style={[styles.introDivider, { backgroundColor: '#c084fc', width: '60%', shadowColor: '#c084fc', shadowOpacity: 0.6, shadowRadius: 10, marginTop: 12 }]} />
         </Animated.View>
 
         {/* Tagline */}
         <Animated.View style={{ opacity: introSubOpacity, transform: [{ translateY: introSubY }] }}>
-          <Text style={styles.introTagline}>Match Gems • Cast Spells • Conquer Worlds</Text>
+          <Text style={[styles.introTagline, { color: '#e2e8f0', fontSize: 12, fontStyle: 'italic', marginTop: 24 }]}>
+            Gemas • Cartas • Táctica Arcana
+          </Text>
         </Animated.View>
 
         {/* Botón de inicio */}
-        <Animated.View style={{ opacity: introBtnOpacity, marginTop: 40 }}>
+        <Animated.View style={{ opacity: introBtnOpacity, marginTop: 60 }}>
           <TouchableOpacity
             onPress={() => {
               if (!currentNodeId) {
@@ -2708,7 +2924,7 @@ function GameApp() {
           >
             <Text style={styles.introStartBtnText}>⚡ INICIAR AVENTURA</Text>
           </TouchableOpacity>
-          <Text style={styles.introVersionText}>v1.2.1 — RPG Match-3 Cards</Text>
+          <Text style={styles.introVersionText}>v{require('./app.json').expo.version} — Aetherbound</Text>
         </Animated.View>
       </SafeAreaView>
     );
@@ -2908,8 +3124,14 @@ function GameApp() {
                   )}
 
                   {isCurrent && (
-                    <View style={{ position: 'absolute', top: -8, backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                    <View style={{ position: 'absolute', top: -8, left: -8, backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
                       <Text style={{ color: '#000', fontSize: 8, fontWeight: 'bold', fontFamily: FONT_HUD }}>ACTUAL</Text>
+                    </View>
+                  )}
+
+                  {world.id < maxUnlockedWorld && (
+                    <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#22c55e', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#166534', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.8, shadowRadius: 2 }}>
+                      <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', fontFamily: FONT_HUD }}>COMPLETADO 👑</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -2921,6 +3143,97 @@ function GameApp() {
           visible={isDataLoaded && !hasSeenTutorial && gameState === 'worlds_overview'} 
           onClose={() => setHasSeenTutorial(true)} 
         />
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================================
+  //  INTERFAZ: SELECCIÓN DE BOTÍN (BOSS LOOT DRAFT)
+  // ============================================================
+  if (gameState === 'boss_loot') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f0a05', padding: 20 }}>
+        <StatusBar barStyle="light-content" backgroundColor="#0f0a05" />
+        <View style={{ flex: 1, maxWidth: 800, alignSelf: 'center', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fbbf24', fontSize: 36, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10, textAlign: 'center' }}>
+            🏆 BOTÍN ÉPICO
+          </Text>
+          <Text style={{ color: '#94a3b8', fontSize: 16, textAlign: 'center', marginBottom: 30 }}>
+            Has conquistado este mundo. Elige 2 cartas para añadir permanentemente a tu colección.
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
+            {bossLootCards.map((card, idx) => {
+              const isSelected = selectedLootIndices.includes(idx);
+              const rColor = getRarityColor(getCardRarity(card.id));
+              
+              return (
+                <TouchableOpacity
+                  key={`loot_${idx}`}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (isSelected) {
+                      setSelectedLootIndices(prev => prev.filter(i => i !== idx));
+                      playSfx('menuClick');
+                    } else if (selectedLootIndices.length < 2) {
+                      setSelectedLootIndices(prev => [...prev, idx]);
+                      playSfx('match');
+                    }
+                  }}
+                  style={{
+                    width: 140,
+                    height: 200,
+                    backgroundColor: '#1e293b',
+                    borderRadius: 12,
+                    borderWidth: isSelected ? 3 : 1,
+                    borderColor: isSelected ? '#fbbf24' : rColor,
+                    overflow: 'hidden',
+                    opacity: selectedLootIndices.length === 2 && !isSelected ? 0.4 : 1,
+                    transform: [{ scale: isSelected ? 1.05 : 1 }]
+                  }}
+                >
+                  {card.image ? (
+                    <Image source={typeof card.image === 'number' ? card.image : { uri: card.image }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#334155' }}>
+                      <Text style={{ fontSize: 40 }}>{getCardEmoji(card.type)}</Text>
+                    </View>
+                  )}
+                  <View style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'rgba(0,0,0,0.85)', padding: 8 }}>
+                    <Text style={{ color: rColor, fontSize: 11, fontWeight: 'bold' }}>{card.name}</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={2}>{card.description}</Text>
+                  </View>
+                  {isSelected && (
+                    <View style={{ position: 'absolute', top: 5, right: 5, backgroundColor: '#fbbf24', borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 12 }}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.modalBtnSave, { width: 250, opacity: selectedLootIndices.length === 2 ? 1 : 0.5 }]}
+            disabled={selectedLootIndices.length !== 2}
+            onPress={() => {
+              const selectedCards = selectedLootIndices.map(idx => bossLootCards[idx].id);
+              setCollection(prev => {
+                const copy = [...prev];
+                selectedCards.forEach(c => {
+                  if (!copy.includes(c)) copy.push(c);
+                });
+                return copy;
+              });
+              playSfx('victory');
+              changeGameState('act_transition');
+            }}
+          >
+            <Text style={styles.modalBtnSaveText}>
+              {selectedLootIndices.length === 2 ? 'RECLAMAR BOTÍN' : `SELECCIONA ${2 - selectedLootIndices.length} MÁS`}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -2951,7 +3264,11 @@ function GameApp() {
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
           {renderGlobalHeader('level_selection')}
 
-          <ScrollView contentContainerStyle={styles.selectionScroll}>
+          <ScrollView 
+            ref={mapScrollRef}
+            contentContainerStyle={styles.selectionScroll}
+            onContentSizeChange={() => mapScrollRef.current?.scrollToEnd({ animated: true })}
+          >
             <Text style={styles.selectionInstructions}>
             Elige tu camino. Acto {currentWorldIndex + 1} - {currentWorld.name}
           </Text>
@@ -3005,16 +3322,16 @@ function GameApp() {
                             style={{
                               position: 'absolute',
                               width: length,
-                              height: 2,
-                              backgroundColor: isPathActive ? 'rgba(255,255,255,0.8)' : 'rgba(255, 255, 255, 0.15)',
-                              top: 30 + dy / 2 - 1,
+                              height: 4,
+                              backgroundColor: isPathActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.1)',
+                              top: 30 + dy / 2 - 2,
                               left: dx / 2 - length / 2,
                               transform: [{ rotate: `${angle}deg` }],
                               zIndex: -1,
-                              shadowColor: isPathActive ? '#fff' : 'transparent',
-                              shadowRadius: 5,
-                              shadowOpacity: 0.5,
-                              elevation: isPathActive ? 2 : 0
+                              shadowColor: isPathActive ? '#0ea5e9' : 'transparent',
+                              shadowRadius: 8,
+                              shadowOpacity: 0.8,
+                              elevation: isPathActive ? 4 : 0
                             }} 
                           />
                         );
@@ -3035,32 +3352,40 @@ function GameApp() {
                           onPress={() => handleNodeSelect(node)}
                           activeOpacity={0.8}
                           style={{
-                            width: 60, height: 60,
+                            width: 64, height: 64,
                             alignItems: 'center', justifyContent: 'center',
-                            opacity: isLocked ? 0.3 : 1,
+                            opacity: isLocked ? 0.4 : 1,
+                            backgroundColor: isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(15, 23, 42, 0.8)',
+                            borderRadius: 32,
+                            borderWidth: 2,
+                            borderColor: isCompleted ? '#22c55e' : (isPlayable ? '#38bdf8' : 'rgba(255,255,255,0.2)'),
+                            shadowColor: isCurrent ? '#fbbf24' : (isPlayable ? '#38bdf8' : '#000'),
+                            shadowRadius: isCurrent || isPlayable ? 15 : 5,
+                            shadowOpacity: 0.8,
+                            elevation: 5
                           }}
                         >
                           {/* Halo de selección estilo Slay the Spire */}
                           {showHalo && (
                             <View style={{
-                              position: 'absolute', width: 68, height: 68, borderRadius: 34,
+                              position: 'absolute', width: 76, height: 76, borderRadius: 38,
                               borderWidth: 2, borderColor: haloColor, borderStyle: 'dashed',
                               opacity: 0.8,
-                              backgroundColor: isCurrent ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)'
+                              backgroundColor: isCurrent ? 'rgba(251,191,36,0.1)' : 'rgba(56,189,248,0.1)'
                             }} />
                           )}
                           
                           <Text style={{
-                            fontSize: node.type === 'boss' ? 50 : 38,
+                            fontSize: node.type === 'boss' ? 38 : 28,
                             textShadowColor: isCompleted ? '#22c55e' : getColor(node.type),
                             textShadowOffset: { width: 0, height: 0 },
-                            textShadowRadius: showHalo ? 15 : 5,
+                            textShadowRadius: showHalo ? 15 : 10,
                           }}>
                             {isCompleted ? '✓' : getEmoji(node.type)}
                           </Text>
                           
                           {isLocked && (
-                            <View style={{ position: 'absolute', right: 5, bottom: 5, backgroundColor: '#000', borderRadius: 10, padding: 2 }}>
+                            <View style={{ position: 'absolute', right: -2, bottom: -2, backgroundColor: '#000', borderRadius: 10, padding: 3, borderWidth: 1, borderColor: '#334155' }}>
                               <Text style={{ fontSize: 10 }}>🔒</Text>
                             </View>
                           )}
@@ -3189,7 +3514,15 @@ function GameApp() {
         {renderGlobalHeader('shop')}
 
         <ScrollView contentContainerStyle={styles.shopScroll}>
-          <Text style={styles.selectionInstructions}>Adquiere hechizos y guerreros para potenciar tu mazo de combate.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(15, 23, 42, 0.8)', padding: 16, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#3b82f6', shadowColor: '#3b82f6', shadowOpacity: 0.5, shadowRadius: 10 }}>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fbbf24' }}>
+              <Text style={{ fontSize: 35 }}>🧙‍♂️</Text>
+            </View>
+            <View style={{ flex: 1, marginLeft: 16 }}>
+              <Text style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 4 }}>Mercader Místico</Text>
+              <Text style={{ color: '#e2e8f0', fontSize: 13, fontFamily: FONT_UI, fontStyle: 'italic' }}>"{merchantDialogue}"</Text>
+            </View>
+          </View>
 
           {currentNodeId && currentNodeId.includes('f') && (
             <TouchableOpacity 
@@ -3208,7 +3541,14 @@ function GameApp() {
             {/* Banner de Servicio de Purga (Arriba del todo) */}
             <TouchableOpacity 
               style={{ width: '100%', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-              onPress={() => setIsRemovingCard(true)}
+              onPress={() => {
+                if (gold < 100) {
+                  setMerchantDialogue('Borrar recuerdos no es barato. Consigue más oro.');
+                  return;
+                }
+                setMerchantDialogue('Elige sabiamente qué técnica deseas olvidar para siempre.');
+                setIsRemovingCard(true);
+              }}
             >
               <View style={{ flex: 1, paddingRight: 10 }}>
                 <Text style={{ color: '#fca5a5', fontSize: 16, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 4 }}>🔥 Purga del Mazo</Text>
@@ -3218,59 +3558,81 @@ function GameApp() {
                 <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>100 🪙</Text>
               </View>
             </TouchableOpacity>
-            {[...Object.values(CARDS_POOL), ...Object.values(RELICS_POOL), ...Object.values(POTIONS_POOL)].map(item => {
-              if (!item.price) return null;
-              
-              const isCard = item.id.startsWith('c');
-              const isRelic = item.id.startsWith('r');
-              const isPotion = item.id.startsWith('p');
-
-              const isOwned = (isCard && collection.includes(item.id)) || (isRelic && relics.includes(item.id));
-              const rarity = isCard ? getCardRarity(item.id) : (isRelic ? 'Mítica' : 'Común');
-
-              const isOffer = item.id === specialOfferId;
-              const discountMultiplier = isOffer ? (1 - specialOfferDiscount) : 1;
-              const finalPrice = Math.floor(item.price * discountMultiplier);
-
+            {/* Secciones del Mercader */}
+            {[{title: '📜 Magia y Artefactos', color: '#fbbf24', items: Object.values(CARDS_POOL)},
+              {title: '🏺 Reliquias Míticas', color: '#a855f7', items: Object.values(RELICS_POOL)},
+              {title: '🧪 Pociones Alquímicas', color: '#3b82f6', items: Object.values(POTIONS_POOL)}
+            ].map((section, idx) => {
+              const shopItems = section.items.filter(i => i.price);
+              if (shopItems.length === 0) return null;
               return (
-                <View key={item.id} style={[styles.shopItemCard, { borderColor: getRarityColor(rarity) }]}>
-                  {isOffer && !isOwned && (
-                    <View style={styles.offerBadge}>
-                      <Text style={styles.offerBadgeText}>⚡ OFERTA -{Math.round(specialOfferDiscount * 100)}% ⚡</Text>
-                    </View>
-                  )}
+                <View key={`section_${idx}`} style={{ width: '100%', marginBottom: 20 }}>
+                  <Text style={{ color: section.color, fontSize: 18, fontWeight: 'bold', fontFamily: FONT_TITLE, marginBottom: 10, paddingHorizontal: 5 }}>
+                    {section.title}
+                  </Text>
+                  <View style={styles.shopGrid}>
+                    {shopItems.map(item => {
+                      const isCard = item.id.startsWith('c');
+                      const isRelic = item.id.startsWith('r');
+                      const isPotion = item.id.startsWith('p');
 
-                  <View style={styles.shopItemHeader}>
-                    <Text style={styles.shopItemEmoji}>{isCard ? getCardEmoji(item.type) : item.emoji}</Text>
-                    <Text style={styles.shopItemName}>{item.name}</Text>
+                      const isOwned = (isCard && collection.includes(item.id)) || (isRelic && relics.includes(item.id));
+                      const rarity = isCard ? getCardRarity(item.id) : (isRelic ? 'Mítica' : 'Común');
+
+                      const isOffer = item.id === specialOfferId;
+                      const discountMultiplier = isOffer ? (1 - specialOfferDiscount) : 1;
+                      const finalPrice = Math.floor(item.price * discountMultiplier);
+                      
+                      const canAfford = gold >= finalPrice;
+
+                      return (
+                        <View key={item.id} style={[
+                          styles.shopItemCard, 
+                          { borderColor: getRarityColor(rarity) },
+                          !canAfford && !isOwned && { opacity: 0.6, borderColor: '#475569' }
+                        ]}>
+                          {isOffer && !isOwned && (
+                            <View style={styles.offerBadge}>
+                              <Text style={styles.offerBadgeText}>⚡ OFERTA -{Math.round(specialOfferDiscount * 100)}% ⚡</Text>
+                            </View>
+                          )}
+
+                          <View style={styles.shopItemHeader}>
+                            <Text style={styles.shopItemEmoji}>{isCard ? getCardEmoji(item.type) : item.emoji}</Text>
+                            <Text style={[styles.shopItemName, !canAfford && !isOwned && { color: '#94a3b8' }]}>{item.name}</Text>
+                          </View>
+                          {item.image && (
+                            <Image source={typeof item.image === 'number' ? item.image : { uri: item.image }} style={[styles.shopCardImage, !canAfford && !isOwned && { opacity: 0.4 }]} resizeMode="cover" />
+                          )}
+                          <Text style={[styles.shopItemDesc, !canAfford && !isOwned && { color: '#64748b' }]} numberOfLines={4}>{item.description}</Text>
+                          
+                          {isCard && (
+                            <Text style={[styles.shopItemType, { color: getCardTypeColor(item.type) }]} numberOfLines={1}>
+                              {item.type.toUpperCase()} (VAL: {item.effectValue})
+                            </Text>
+                          )}
+                          {isRelic && <Text style={[styles.shopItemType, { color: '#f59e0b' }]} numberOfLines={1}>RELIQUIA PASIVA</Text>}
+                          {isPotion && <Text style={[styles.shopItemType, { color: '#0ea5e9' }]} numberOfLines={1}>POCIÓN ({potions.filter(p => p === item.id).length}/3)</Text>}
+
+                          {isOwned && !isPotion ? (
+                            <View style={styles.shopBoughtBadge}>
+                              <Text style={styles.shopBoughtText}>✓ ADQUIRIDA</Text>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => handleBuyItem(item, finalPrice)}
+                              style={[styles.shopBuyBtn, canAfford ? { backgroundColor: '#fbbf24', shadowColor: '#fbbf24', shadowOpacity: 0.5, shadowRadius: 10, elevation: 5 } : { backgroundColor: '#475569' }]}
+                              activeOpacity={canAfford ? 0.8 : 1}
+                            >
+                              <Text style={[styles.shopBuyBtnText, canAfford ? { color: '#000', fontWeight: '900' } : { color: '#cbd5e1' }]}>
+                                🪙 {canAfford ? 'COMPRAR' : 'MUY CARO'} por {finalPrice} {isOffer && <Text style={{ textDecorationLine: 'line-through', fontSize: 7, opacity: 0.7 }}>({item.price})</Text>}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
-                  {item.image && (
-                    <Image source={typeof item.image === 'number' ? item.image : { uri: item.image }} style={styles.shopCardImage} resizeMode="cover" />
-                  )}
-                  <Text style={styles.shopItemDesc} numberOfLines={4}>{item.description}</Text>
-                  
-                  {isCard && (
-                    <Text style={[styles.shopItemType, { color: getCardTypeColor(item.type) }]} numberOfLines={1}>
-                      {item.type.toUpperCase()} (VAL: {item.effectValue})
-                    </Text>
-                  )}
-                  {isRelic && <Text style={[styles.shopItemType, { color: '#f59e0b' }]} numberOfLines={1}>RELIQUIA PASIVA</Text>}
-                  {isPotion && <Text style={[styles.shopItemType, { color: '#0ea5e9' }]} numberOfLines={1}>POCIÓN ({potions.filter(p => p === item.id).length}/3)</Text>}
-
-                  {isOwned && !isPotion ? (
-                    <View style={styles.shopBoughtBadge}>
-                      <Text style={styles.shopBoughtText}>✓ ADQUIRIDA</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleBuyItem(item, finalPrice)}
-                      style={styles.shopBuyBtn}
-                    >
-                      <Text style={styles.shopBuyBtnText}>
-                        🪙 COMPRAR por {finalPrice} {isOffer && <Text style={{ textDecorationLine: 'line-through', fontSize: 7, opacity: 0.7 }}>({item.price})</Text>}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
               );
             })}
@@ -3698,6 +4060,7 @@ function GameApp() {
             status={enemyStatus}
             bossIntent={bossIntent}
             isHorizontal={true}
+            isBossMode={currentNodeId?.includes('boss')}
           />
         </View>
 
@@ -3858,6 +4221,17 @@ function GameApp() {
             <View style={styles.handHeader}>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
                 <Text style={styles.handTitle}>🎴 MANO ACTIVA</Text>
+                {enemy?.type === 'boss' && (
+                  <TouchableOpacity 
+                    style={{marginLeft: 10, backgroundColor: isFusionMode ? '#ef4444' : '#8b5cf6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#a855f7', shadowColor: '#a855f7', shadowOpacity: 0.8, shadowRadius: 5}}
+                    onPress={() => {
+                      setIsFusionMode(!isFusionMode);
+                      setFusionSelection([]);
+                    }}
+                  >
+                    <Text style={{color: '#fff', fontSize: 10, fontWeight: 'bold'}}>{isFusionMode ? 'CANCELAR FUSIÓN' : '🌀 FUSIÓN MÍSTICA'}</Text>
+                  </TouchableOpacity>
+                )}
                 {potions.length > 0 && (
                   <View style={{flexDirection: 'row', marginLeft: 10, gap: 4}}>
                     {potions.map((pId, idx) => {
@@ -3882,27 +4256,47 @@ function GameApp() {
               {hand.map((card, idx) => {
                 const isReady = card.charge >= card.totalCost;
                 const progress = Math.min(100, (card.charge / card.totalCost) * 100);
-                const cardDisabled = actionPoints <= 0 || turn !== 'player';
+                const isChainAttack = lastCardPlayed?.type === 'Defensa' && card.type === 'Ataque';
+                const currentCost = isChainAttack ? 0 : 1;
+                const cardDisabled = actionPoints < currentCost || turn !== 'player';
                 const isSelected = selectedHandIndex === idx;
                 
+                const isFusionSelected = fusionSelection.some(sel => sel.index === idx);
+
                 return (
                   <TouchableOpacity
-                    key={card.id}
+                    key={card.instanceId || card.id}
                     activeOpacity={0.8}
-                    disabled={cardDisabled}
+                    disabled={isFusionMode ? false : cardDisabled}
                     style={[
                       styles.cardContainer,
                       isReady ? styles.cardReady : null,
                       isSelected ? styles.cardSelected : null,
-                      cardDisabled && !isReady ? styles.cardContainerDisabled : null,
-                      { borderColor: isReady ? '#fbbf24' : 'rgba(255,255,255,0.07)' }
+                      isFusionSelected ? { borderColor: '#a855f7', borderWidth: 3, shadowColor: '#a855f7', shadowOpacity: 1, shadowRadius: 10, transform: [{ translateY: -10 }] } : null,
+                      cardDisabled && !isReady && !isFusionMode ? styles.cardContainerDisabled : null,
+                      !isFusionSelected && !isSelected && { borderColor: isReady ? '#fbbf24' : 'rgba(255,255,255,0.07)' }
                     ]}
                     onPress={() => {
-                      if (isReady) {
-                        handlePlayCard(card);
+                      if (isFusionMode) {
+                        const newSelection = [...fusionSelection];
+                        const selIdx = newSelection.findIndex(sel => sel.index === idx);
+                        if (selIdx >= 0) {
+                          newSelection.splice(selIdx, 1);
+                        } else {
+                          if (newSelection.length < 2) newSelection.push({ index: idx, card });
+                        }
+                        setFusionSelection(newSelection);
+                        
+                        if (newSelection.length === 2) {
+                          handleFusion(newSelection);
+                        }
                       } else {
-                        setSelectedHandIndex(idx);
-                        playSfx('match');
+                        if (isReady) {
+                          handlePlayCard(card);
+                        } else {
+                          setSelectedHandIndex(idx);
+                          playSfx('match');
+                        }
                       }
                     }}
                   >
@@ -3910,6 +4304,11 @@ function GameApp() {
                       <View style={[styles.manaPip, { backgroundColor: getPipColor(Object.keys(card.manaCost)[0]) }]}>
                         <Text style={styles.manaPipText}>{card.manaCost[Object.keys(card.manaCost)[0]]}</Text>
                       </View>
+                      {isChainAttack && (
+                        <View style={[styles.manaPip, { backgroundColor: '#10b981', marginLeft: 4, paddingHorizontal: 4 }]}>
+                          <Text style={styles.manaPipText}>0 PA</Text>
+                        </View>
+                      )}
                     </View>
 
                     {card.image ? (
@@ -4839,12 +5238,12 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   introVersionText: {
-    color: 'rgba(255,255,255,0.2)',
+    color: 'rgba(255,255,255,0.7)',
     fontFamily: FONT_UI,
-    fontSize: 10,
+    fontSize: 12,
     textAlign: 'center',
-    marginTop: 12,
-    letterSpacing: 1,
+    marginTop: 16,
+    letterSpacing: 1.5,
   },
   
   // ============================================================

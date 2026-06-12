@@ -136,10 +136,51 @@ export const executeAdvancedEnemyTurn = (enemy, player, world, grid, enemyStatus
   let actionDescription = '';
   let boardEffect = null;
 
-  // Lógica modular infinita: si el mundo es > 12, se repiten los patrones de los primeros 12.
+  // Lógica modular infinita
   const rawWorldId = world?.id || 1;
   const worldId = ((rawWorldId - 1) % 12) + 1;
   const enemyEnergy = updatedEnemy.energy || 0;
+
+  // --- MECÁNICA DE FASES (ENRAGE) ---
+  const isPhase2 = updatedEnemy.hp <= updatedEnemy.maxHp / 2;
+  const justEnteredPhase2 = isPhase2 && !updatedEnemy.phase2Active;
+
+  if (justEnteredPhase2) {
+    updatedEnemy.phase2Active = true;
+    updatedEnemy.energy = 0; // Gasta su energía en enfurecerse
+    switch (worldId) {
+      case 1:
+        updatedPlayer.shield = 0;
+        actionDescription = `🔥 ¡ENFURECIDO! El Demonio de Lava entra en Fase 2. [Calor Extremo]: Derrite todo tu escudo.`;
+        break;
+      case 2:
+        boardEffect = { type: 'lock', count: 5 };
+        actionDescription = `⚡ ¡ENFURECIDO! El Kirin entra en Fase 2. [Sobrecarga]: Bloquea 5 gemas.`;
+        break;
+      case 3:
+        updatedEnemy.shield = (updatedEnemy.shield || 0) + 50;
+        actionDescription = `🪨 ¡ENFURECIDO! El Titán entra en Fase 2. [Piel de Diamante]: Gana 50 de Armadura.`;
+        break;
+      case 4:
+        updatedPlayer.hp = Math.max(1, updatedPlayer.hp - 40);
+        actionDescription = `🌌 ¡ENFURECIDO! El Avatar del Caos entra en Fase 2. [Colapso]: 40 Daño directo inevitable.`;
+        break;
+      default:
+        updatedEnemy.shield = (updatedEnemy.shield || 0) + 30;
+        actionDescription = `💢 ¡ENFURECIDO! El enemigo entra en Fase 2. Gana +30 de Armadura y aumenta su poder.`;
+        break;
+    }
+    
+    return {
+      updatedEnemy,
+      updatedPlayer,
+      actionDescription,
+      recommendedMove: null,
+      boardEffect,
+    };
+  }
+
+  const phaseMultiplier = updatedEnemy.phase2Active ? 1.5 : 1; // 50% más de daño en Fase 2
 
   let preferredColor = 'purple'; // Calaveras por defecto
   let prioritizeMatch4 = false;
@@ -149,7 +190,7 @@ export const executeAdvancedEnemyTurn = (enemy, player, world, grid, enemyStatus
     case 1: // Demonio de Lava
       preferredColor = 'red'; // Prioriza Fuego
       if (enemyEnergy >= 3) {
-        const baseDmg = 15;
+        const baseDmg = Math.floor(15 * phaseMultiplier);
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -169,7 +210,7 @@ export const executeAdvancedEnemyTurn = (enemy, player, world, grid, enemyStatus
       preferredColor = 'yellow'; // Prioriza Rayo
       prioritizeMatch4 = true;   // Busca combinaciones Match-4/5
       if (enemyEnergy >= 4) {
-        const baseDmg = 20;
+        const baseDmg = Math.floor(20 * phaseMultiplier);
         const playerShield = updatedPlayer.shield || 0;
         if (playerShield >= baseDmg) {
           updatedPlayer.shield -= baseDmg;
@@ -391,36 +432,45 @@ export const forecastBossIntent = (enemy, world, maxUnlockedWorld = 1) => {
   const rawWorldId = world?.id || 1;
   const worldId = ((rawWorldId - 1) % 12) + 1;
   const energy = enemy?.energy || 0;
+  
+  const isPhase2 = enemy?.hp <= enemy?.maxHp / 2;
+  const justEnteredPhase2 = isPhase2 && !enemy?.phase2Active;
+  
+  if (justEnteredPhase2) {
+    return { type: 'enrage', value: 'MAX', desc: '⚠️ ¡ENFURECIMIENTO! Ataque Masivo' };
+  }
+
+  const phaseMultiplier = isPhase2 ? 1.5 : 1;
 
   switch (worldId) {
     case 1:
-      if (energy >= 3) return { type: 'attack', value: 8, desc: 'Lluvia de Magma: 8 Daño a Escudo/Vida' };
+      if (energy >= 3) return { type: 'attack', value: Math.floor(8 * phaseMultiplier), desc: `Lluvia de Magma: ${Math.floor(8 * phaseMultiplier)} Daño a Escudo/Vida` };
       return { type: 'energy', value: 2, desc: 'Acumular Calor: +2 Energía' };
     case 2:
-      if (energy >= 4) return { type: 'attack', value: 12, desc: 'Tempestad EMP: 12 Daño y drena maná' };
+      if (energy >= 4) return { type: 'attack', value: Math.floor(12 * phaseMultiplier), desc: `Tempestad EMP: ${Math.floor(12 * phaseMultiplier)} Daño y drena maná` };
       return { type: 'energy', value: 3, desc: 'Invocar Relámpagos: +3 Energía' };
     case 3:
-      if (energy >= 3) return { type: 'defend', value: 20, desc: 'Piel de Piedra: +20 Armadura' };
+      if (energy >= 3) return { type: 'defend', value: Math.floor(20 * phaseMultiplier), desc: `Piel de Piedra: +${Math.floor(20 * phaseMultiplier)} Armadura` };
       return { type: 'energy', value: 2, desc: 'Fundirse con la Tierra: +2 Energía' };
     case 4:
-      if (energy >= 4) return { type: 'attack', value: 16, desc: 'Supernova del Vacío: 16 Daño Puro a HP' };
+      if (energy >= 4) return { type: 'attack', value: Math.floor(16 * phaseMultiplier), desc: `Supernova del Vacío: ${Math.floor(16 * phaseMultiplier)} Daño Puro a HP` };
       return { type: 'energy', value: 3, desc: 'Absorber Gravedad: +3 Energía' };
     case 5:
       if (energy >= 3) return { type: 'debuff', value: 'Congelado', desc: 'Prisma Congelante: Aplica Congelamiento por 2 turnos' };
       return { type: 'energy', value: 2, desc: 'Refractar Luz: +2 Energía' };
     case 6:
-      if (energy >= 3) return { type: 'attack', value: 15, desc: 'Ciclón Devastador: 15 Daño' };
+      if (energy >= 3) return { type: 'attack', value: Math.floor(15 * phaseMultiplier), desc: `Ciclón Devastador: ${Math.floor(15 * phaseMultiplier)} Daño` };
       return { type: 'energy', value: 2, desc: 'Llamar a los Vientos: +2 Energía' };
     case 7:
-      if (energy >= 4) return { type: 'defend', value: 25, desc: 'Escudo Glaciar: +25 Armadura' };
+      if (energy >= 4) return { type: 'defend', value: Math.floor(25 * phaseMultiplier), desc: `Escudo Glaciar: +${Math.floor(25 * phaseMultiplier)} Armadura` };
       return { type: 'energy', value: 2, desc: 'Acumular Escarcha: +2 Energía' };
     case 8:
-      if (energy >= 4) return { type: 'attack', value: 22, desc: 'Llamarada del Caos: 22 Daño' };
+      if (energy >= 4) return { type: 'attack', value: Math.floor(22 * phaseMultiplier), desc: `Llamarada del Caos: ${Math.floor(22 * phaseMultiplier)} Daño` };
       return { type: 'energy', value: 3, desc: 'Desatar Entropía: +3 Energía' };
     default:
       if (energy >= 3) {
         const fallbackMultiplier = 1 + ((maxUnlockedWorld - 1) * 0.2);
-        const fallbackDmg = Math.floor((15 + (worldId * 5)) * fallbackMultiplier);
+        const fallbackDmg = Math.floor((15 + (worldId * 5)) * fallbackMultiplier * phaseMultiplier);
         return { type: 'attack', value: fallbackDmg, desc: `Golpe Feroz: ${fallbackDmg} Daño` };
       }
       return { type: 'energy', value: 2, desc: 'Acumular Energía: +2 Energía' };
