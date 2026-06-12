@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Aetherbound: Códice de Cristal",
-    "slug": "aetherbound-codice",
-    "version": "1.3.0",
+    "slug": "rpg-match3-cards",
+    "version": "1.3.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
@@ -26,18 +26,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rpgmatch3.cards"
+      "bundleIdentifier": "com.rpgmatch3.cards",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "extra": {
       "eas": {
-        "projectId": "6c82326d-58e6-412c-99e8-e3bc3543225f"
+        "projectId": "10afb802-dcd3-48d9-86ac-c32d606591fe"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/6c82326d-58e6-412c-99e8-e3bc3543225f"
     }
   }
 }
